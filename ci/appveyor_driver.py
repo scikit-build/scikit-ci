@@ -76,8 +76,6 @@ class AppveyorDriver(Driver):
         self.env["PYTHONSCRIPTS"] = py_scripts
         self.env_prepend("PATH", py_scripts, python_root)
 
-        self.env["SKBUILD_CMAKE_CONFIG"] = "Release"
-
         self.log("Downloading CMake")
         remote_file = self.urlopen(
             "https://cmake.org/files/v3.5/cmake-3.5.2-win32-x86.zip")
