@@ -23,9 +23,9 @@ def _log(*args):
     sys.stdout.flush()
 
 
-def _env_prepend(self, key, *values):
-    self.env[key] = os.pathsep.join(
-        list(values) + self.env.get(key, "").split(os.pathsep))
+def _env_prepend(key, *values):
+    os.environ[key] = os.pathsep.join(
+        list(values) + os.environ.get(key, "").split(os.pathsep))
 
 
 def install():
