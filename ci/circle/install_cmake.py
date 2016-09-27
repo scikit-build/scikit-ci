@@ -9,11 +9,6 @@ Usage::
 
 from subprocess import check_call
 
-try:
-    from urllib.request import urlopen
-except ImportError:
-    from urllib2 import urlopen
-
 
 def install():
     """Download and install CMake into ``/usr/local``."""
