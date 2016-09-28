@@ -3,10 +3,17 @@ import json
 import os
 import os.path
 import ruamel.yaml
+import shlex
 import subprocess
 import sys
 
 SCIKIT_CI_CONFIG = "scikit-ci.yml"
+
+SERVICES = {
+    "appveyor": None,
+    "circle": None,
+    "travis": "TRAVIS_OS_NAME"
+}
 
 
 class DriverContext(object):
@@ -66,35 +73,46 @@ class Driver(object):
         return DriverContext(self, env_file)
 
     @staticmethod
-    def parse_config(config_file, stage_name, service_name, what):
+    def parse_config(config_file, stage_name, service_name):
         with open(config_file) as input_stream:
             data = ruamel.yaml.load(input_stream, ruamel.yaml.RoundTripLoader)
-        items = []
+        commands = []
+        environment = {}
         if stage_name in data:
-            items = data[stage_name].get(what, [])
-            if service_name in data[stage_name]:
-                items += data[stage_name][service_name].get(what, [])
-        return items
+            stage = data[stage_name]
+
+            # common to all services
+            environment = stage.get("environment", {})
+            commands = stage.get("commands", [])
+
+            if service_name in stage:
+                system = stage[service_name]
+
+                # consider service offering multiple operating system support
+                if SERVICES[service_name]:
+                    operating_system = os.environ[SERVICES[service_name]]
+                    system = system[operating_system]
+
+                # if any, append service specific environment and commands
+                environment.update(system.get("environment", {}))
+                commands += system.get("commands", [])
+
+        return environment, commands
 
     def execute_commands(self, stage_name, service_name):
 
-        environment = self.parse_config(
-            SCIKIT_CI_CONFIG, stage_name, service_name, "environment")
 
-        commands = self.parse_config(
-            SCIKIT_CI_CONFIG, stage_name, service_name, "commands")
+        environment, commands = self.parse_config(
+            SCIKIT_CI_CONFIG, stage_name, service_name)
+
+        self.env.update(environment)
 
         for cmd in commands:
-            self.check_call(cmd, shell=True, env=environment)
+            self.check_call(shlex.split(cmd), env=self.env)
 
 
 if __name__ == "__main__":
 
-    service_names = [
-        "appveyor",
-        "circle",
-        "travis"
-    ]
 
     stages = [
         "before_install",
@@ -107,9 +125,11 @@ if __name__ == "__main__":
 
     if not os.path.exists(SCIKIT_CI_CONFIG):
         raise Exception("Couldn't find %s" % SCIKIT_CI_CONFIG)
+
     service_name, stage_key = sys.argv[1:3]
-    if service_name not in service_names:
+    if service_name not in SERVICES.keys():
         raise KeyError("invalid service: {}".format(service_name))
+
     if stage_key not in stages:
         raise KeyError("invalid stage: {}".format(stage_key))
 
