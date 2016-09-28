@@ -35,6 +35,18 @@ class TravisDriver(PythonWheelDriver):
         if not self.is_darwin:
             PythonWheelDriver.drive_install(self)
 
+    def drive_pre_build(self):
+        if self.is_darwin:
+            self.check_call(
+                "\n".join((
+                    "eval \"$( pyenv init - )\"",
+                    "python -m flake8 -v"
+                )),
+                shell=True
+            )
+        else:
+            PythonWheelDriver.drive_pre_build(self)
+
     def drive_build(self):
         if self.is_darwin:
             self.check_call(
@@ -46,18 +58,6 @@ class TravisDriver(PythonWheelDriver):
             )
         else:
             PythonWheelDriver.drive_build(self)
-
-    def drive_style(self):
-        if self.is_darwin:
-            self.check_call(
-                "\n".join((
-                    "eval \"$( pyenv init - )\"",
-                    "python -m flake8 -v"
-                )),
-                shell=True
-            )
-        else:
-            PythonWheelDriver.drive_style(self)
 
     def drive_test(self):
         if self.is_darwin:

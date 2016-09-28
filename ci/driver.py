@@ -77,10 +77,10 @@ class Driver(object):
     def drive_install(self):
         pass
 
-    def drive_build(self):
+    def drive_pre_build(self):
         pass
 
-    def drive_style(self):
+    def drive_build(self):
         pass
 
     def drive_test(self):
@@ -115,8 +115,8 @@ class PythonWheelDriver(Driver):
         Driver.drive_build(self)
         self.check_call(["python", "setup.py", "build"])
 
-    def drive_style(self):
-        Driver.drive_style(self)
+    def drive_pre_build(self):
+        Driver.drive_pre_build(self)
         self.check_call(["python", "-m", "flake8", "-v"])
 
     def drive_test(self):
@@ -148,7 +148,7 @@ if __name__ == "__main__":
     stage_table = {
         "install": "drive_install",
         "build": "drive_build",
-        "style": "drive_style",
+        "style": "drive_pre_build",
         "test": "drive_test",
         "after_test": "drive_after_test",
     }
