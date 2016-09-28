@@ -2,14 +2,11 @@
 import json
 import os
 import os.path
-import struct
+import ruamel.yaml
 import subprocess
 import sys
 
-try:
-    from urllib.request import urlopen
-except ImportError:
-    from urllib2 import urlopen
+SCIKIT_CI_CONFIG = "scikit-ci.yml"
 
 
 class DriverContext(object):
@@ -33,12 +30,10 @@ class Driver(object):
         self.env = None
         self._env_file = None
 
-    def log(self, *s):
+    @staticmethod
+    def log(*s):
         print(" ".join(s))
         sys.stdout.flush()
-
-    def urlopen(self, *args, **kwargs):
-        return urlopen(*args, **kwargs)
 
     def load_env(self, env_file="env.json"):
         if self.env is not None:
@@ -63,10 +58,6 @@ class Driver(object):
     def unload_env(self):
         self.env = None
 
-    def env_prepend(self, key, *values):
-        self.env[key] = os.pathsep.join(
-            list(values) + self.env.get(key, "").split(os.pathsep))
-
     def check_call(self, *args, **kwds):
         kwds["env"] = kwds.get("env", self.env)
         return subprocess.check_call(*args, **kwds)
@@ -74,95 +65,54 @@ class Driver(object):
     def env_context(self, env_file="env.json"):
         return DriverContext(self, env_file)
 
-    def drive_install(self):
-        pass
+    @staticmethod
+    def parse_config(config_file, stage_name, service_name, what):
+        with open(config_file) as input_stream:
+            data = ruamel.yaml.load(input_stream, ruamel.yaml.RoundTripLoader)
+        items = []
+        if stage_name in data:
+            items = data[stage_name].get(what, [])
+            if service_name in data[stage_name]:
+                items += data[stage_name][service_name].get(what, [])
+        return items
 
-    def drive_pre_build(self):
-        pass
+    def execute_commands(self, stage_name, service_name):
 
-    def drive_build(self):
-        pass
+        environment = self.parse_config(
+            SCIKIT_CI_CONFIG, stage_name, service_name, "environment")
 
-    def drive_test(self):
-        pass
+        commands = self.parse_config(
+            SCIKIT_CI_CONFIG, stage_name, service_name, "commands")
 
-    def drive_after_test(self):
-        pass
-
-
-class PythonWheelDriver(Driver):
-
-    def drive_install(self):
-        Driver.drive_install(self)
-
-        self.log("Python Version:")
-        self.log(sys.version)
-        self.log("    {}-bit".format(struct.calcsize("P") * 8))
-
-        self.check_call([
-            "python", "-m", "pip",
-            "install", "--disable-pip-version-check",
-            "--upgrade", "pip"
-        ])
-
-        self.check_call([
-            "python", "-m", "pip", "install", "-r", "requirements.txt"])
-
-        self.check_call([
-            "python", "-m", "pip", "install", "-r", "requirements-dev.txt"])
-
-    def drive_build(self):
-        Driver.drive_build(self)
-        self.check_call(["python", "setup.py", "build"])
-
-    def drive_pre_build(self):
-        Driver.drive_pre_build(self)
-        self.check_call(["python", "-m", "flake8", "-v"])
-
-    def drive_test(self):
-        Driver.drive_test(self)
-        extra_test_args = self.env.get("EXTRA_TEST_ARGS", "")
-        addopts = []
-        if extra_test_args:
-            addopts.extend(["--addopts", extra_test_args])
-
-        self.check_call(
-            ["python", "setup.py", "test"] + addopts)
-
-    def drive_after_test(self):
-        Driver.drive_after_test(self)
-        self.check_call(["python", "setup.py", "bdist_wheel"])
+        for cmd in commands:
+            self.check_call(cmd, shell=True, env=environment)
 
 
 if __name__ == "__main__":
-    from appveyor_driver import AppveyorDriver
-    from circle_driver import CircleDriver
-    from travis_driver import TravisDriver
 
-    driver_table = {
-        "appveyor": AppveyorDriver,
-        "circle": CircleDriver,
-        "travis": TravisDriver,
-    }
+    service_names = [
+        "appveyor",
+        "circle",
+        "travis"
+    ]
 
-    stage_table = {
-        "install": "drive_install",
-        "build": "drive_build",
-        "style": "drive_pre_build",
-        "test": "drive_test",
-        "after_test": "drive_after_test",
-    }
+    stages = [
+        "before_install",
+        "install",
+        "before_build",
+        "build",
+        "test",
+        "after_test"
+    ]
 
-    class_key, stage_key = sys.argv[1:3]
-    try:
-        DriverClass = driver_table[class_key]
-    except KeyError:
-        raise KeyError("invalid driver implementation: {}".format(class_key))
-    try:
-        stage = stage_table[stage_key]
-    except KeyError:
+    if not os.path.exists(SCIKIT_CI_CONFIG):
+        raise Exception("Couldn't find %s" % SCIKIT_CI_CONFIG)
+    service_name, stage_key = sys.argv[1:3]
+    if service_name not in service_names:
+        raise KeyError("invalid service: {}".format(service_name))
+    if stage_key not in stages:
         raise KeyError("invalid stage: {}".format(stage_key))
 
-    d = DriverClass()
+    d = Driver()
     with d.env_context():
-        getattr(d, stage)()
+        d.execute_commands(stage_key, service_name)
