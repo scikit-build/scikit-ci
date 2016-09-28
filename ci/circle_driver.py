@@ -1,17 +1,17 @@
 
-from driver import Driver
+from driver import PythonWheelDriver
 
 from circle import install_cmake
 
 
-class CircleDriver(Driver):
+class CircleDriver(PythonWheelDriver):
     def drive_install(self):
         self.check_call(["sudo", "apt-get", "update"])
         self.check_call(["sudo", "apt-get", "install", "gfortran"])
 
         install_cmake.install()
 
-        Driver.drive_install(self)
+        PythonWheelDriver.drive_install(self)
 
     def drive_after_test(self):
         self.check_call([
@@ -19,4 +19,4 @@ class CircleDriver(Driver):
             "--file", "./tests/coverage.xml"
         ])
 
-        Driver.drive_after_test(self)
+        PythonWheelDriver.drive_after_test(self)

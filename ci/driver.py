@@ -75,6 +75,26 @@ class Driver(object):
         return DriverContext(self, env_file)
 
     def drive_install(self):
+        pass
+
+    def drive_build(self):
+        pass
+
+    def drive_style(self):
+        pass
+
+    def drive_test(self):
+        pass
+
+    def drive_after_test(self):
+        pass
+
+
+class PythonWheelDriver(Driver):
+
+    def drive_install(self):
+        Driver.drive_install(self)
+
         self.log("Python Version:")
         self.log(sys.version)
         self.log("    {}-bit".format(struct.calcsize("P") * 8))
@@ -92,12 +112,15 @@ class Driver(object):
             "python", "-m", "pip", "install", "-r", "requirements-dev.txt"])
 
     def drive_build(self):
+        Driver.drive_build(self)
         self.check_call(["python", "setup.py", "build"])
 
     def drive_style(self):
+        Driver.drive_style(self)
         self.check_call(["python", "-m", "flake8", "-v"])
 
     def drive_test(self):
+        Driver.drive_test(self)
         extra_test_args = self.env.get("EXTRA_TEST_ARGS", "")
         addopts = []
         if extra_test_args:
@@ -107,7 +130,9 @@ class Driver(object):
             ["python", "setup.py", "test"] + addopts)
 
     def drive_after_test(self):
+        Driver.drive_after_test(self)
         self.check_call(["python", "setup.py", "bdist_wheel"])
+
 
 if __name__ == "__main__":
     from appveyor_driver import AppveyorDriver

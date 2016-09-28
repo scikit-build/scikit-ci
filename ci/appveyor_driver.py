@@ -1,5 +1,5 @@
 
-from driver import Driver
+from driver import PythonWheelDriver
 
 import os
 import os.path
@@ -10,7 +10,7 @@ from appveyor import (apply_mingw_path_fix,
                       patch_vs2008)
 
 
-class AppveyorDriver(Driver):
+class AppveyorDriver(PythonWheelDriver):
     def drive_install(self):
         self.log("Filesystem root:")
         self.check_call(["dir", "C:\\"])
@@ -34,10 +34,10 @@ class AppveyorDriver(Driver):
         self.env["PYTHONSCRIPTS"] = py_scripts
         self.env_prepend("PATH", py_scripts, python_root)
 
-        Driver.drive_install(self)
+        PythonWheelDriver.drive_install(self)
 
     def drive_after_test(self):
-        Driver.drive_after_test(self)
+        PythonWheelDriver.drive_after_test(self)
 
         self.check_call(["python", "setup.py", "bdist_wininst"])
         self.check_call(["python", "setup.py", "bdist_msi"])

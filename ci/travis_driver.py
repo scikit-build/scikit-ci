@@ -1,13 +1,13 @@
 
-from driver import Driver
+from driver import PythonWheelDriver
 
 from travis import (install_cmake, install_pyenv)
 
 
-class TravisDriver(Driver):
+class TravisDriver(PythonWheelDriver):
 
     def load_env(self, *args, **kwargs):
-        Driver.load_env(self, *args, **kwargs)
+        PythonWheelDriver.load_env(self, *args, **kwargs)
         self.is_darwin = (self.env.get("TRAVIS_OS_NAME") == "osx")
         self.py_version = self.env.get("PYTHONVERSION")
         self.extra_test_args = self.env.get("EXTRA_TEST_ARGS", "")
@@ -33,7 +33,7 @@ class TravisDriver(Driver):
             )
 
         if not self.is_darwin:
-            Driver.drive_install(self)
+            PythonWheelDriver.drive_install(self)
 
     def drive_build(self):
         if self.is_darwin:
@@ -45,7 +45,7 @@ class TravisDriver(Driver):
                 shell=True
             )
         else:
-            Driver.drive_build(self)
+            PythonWheelDriver.drive_build(self)
 
     def drive_style(self):
         if self.is_darwin:
@@ -57,7 +57,7 @@ class TravisDriver(Driver):
                 shell=True
             )
         else:
-            Driver.drive_style(self)
+            PythonWheelDriver.drive_style(self)
 
     def drive_test(self):
         if self.is_darwin:
@@ -74,7 +74,7 @@ class TravisDriver(Driver):
                 shell=True
             )
         else:
-            Driver.drive_test(self)
+            PythonWheelDriver.drive_test(self)
 
     def drive_after_test(self):
         if self.is_darwin:
@@ -91,4 +91,4 @@ class TravisDriver(Driver):
                 "codecov", "-X", "gcov", "--required",
                 "--file", "./tests/coverage.xml"
             ])
-            Driver.drive_after_test(self)
+            PythonWheelDriver.drive_after_test(self)
