@@ -1,4 +1,10 @@
 
+import errno
+import os
+
+from functools import wraps
+
+
 class ContextDecorator(object):
     """A base class or mixin that enables context managers to work as
     decorators."""
@@ -49,3 +55,18 @@ class push_dir(ContextDecorator):
 
     def __exit__(self, typ, val, traceback):
         os.chdir(self.old_cwd)
+
+
+def mkdir_p(path):
+    """Ensure directory ``path`` exists. If needed, parent directories
+    are created.
+
+    Adapted from http://stackoverflow.com/a/600612/1539918
+    """
+    try:
+        os.makedirs(path)
+    except OSError as exc:  # Python >2.5
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:  # pragma: no cover
+            raise

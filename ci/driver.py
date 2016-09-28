@@ -101,7 +101,6 @@ class Driver(object):
 
     def execute_commands(self, stage_name, service_name):
 
-
         environment, commands = self.parse_config(
             SCIKIT_CI_CONFIG, stage_name, service_name)
 
@@ -112,7 +111,6 @@ class Driver(object):
 
 
 if __name__ == "__main__":
-
 
     stages = [
         "before_install",

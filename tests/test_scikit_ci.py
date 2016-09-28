@@ -46,7 +46,7 @@ def test_scikit_ci(service):
 
             second_line = "%s / %s" % (step, service)
             if system:
-                second_line = "%s / %s-%s / %s" % (step, service, system, system)
+                second_line = "%s-%s / %s" % (second_line, system, system)
 
             print(output)
 
