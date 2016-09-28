@@ -58,7 +58,7 @@ class Driver(object):
             env_file = self._env_file
 
         with open(env_file, "w") as env:
-            json.dump(self.env, env)
+            json.dump(self.env, env, indent=4)
 
     def unload_env(self):
         self.env = None
