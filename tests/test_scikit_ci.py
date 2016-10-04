@@ -14,6 +14,10 @@ def test_scikit_ci(service):
     environment = dict(os.environ)
     environment[service.upper()] = "true"
 
+    # By default, a service is associated with only one "implicit" operating
+    # system.
+    # Service supporting multiple operating system (e.g travis) should be
+    # specified below.
     osenv_per_service = {
         "travis": {"linux": "TRAVIS_OS_NAME", "osx": "TRAVIS_OS_NAME"}
     }
