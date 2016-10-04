@@ -83,7 +83,7 @@ class Driver(object):
         return DriverContext(self, env_file)
 
     @staticmethod
-    def current_service_name():
+    def current_service():
         for service in SERVICES.keys():
             if os.environ.get(service.upper(), 'false') == 'true':
                 return service
@@ -122,7 +122,7 @@ class Driver(object):
 
     def execute_commands(self, stage_name):
 
-        service_name = self.current_service_name()
+        service_name = self.current_service()
 
         environment, commands = self.parse_config(
             SCIKIT_CI_CONFIG, stage_name, service_name)
