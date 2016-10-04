@@ -83,6 +83,17 @@ class Driver(object):
         return DriverContext(self, env_file)
 
     @staticmethod
+    def current_service_name():
+        for service in SERVICES.keys():
+            if os.environ.get(service.upper(), 'false') == 'true':
+                return service
+        raise Exception(
+            "unknown service: None of the environment variables {} "
+            "is set to 'true'".format(", ".join(
+                [service.upper() for service in SERVICES.keys()]))
+        )
+
+    @staticmethod
     def parse_config(config_file, stage_name, service_name):
         with open(config_file) as input_stream:
             data = ruamel.yaml.load(input_stream, ruamel.yaml.RoundTripLoader)
@@ -109,7 +120,9 @@ class Driver(object):
 
         return environment, commands
 
-    def execute_commands(self, stage_name, service_name):
+    def execute_commands(self, stage_name):
+
+        service_name = self.current_service_name()
 
         environment, commands = self.parse_config(
             SCIKIT_CI_CONFIG, stage_name, service_name)
@@ -134,13 +147,11 @@ if __name__ == "__main__":
     if not os.path.exists(SCIKIT_CI_CONFIG):
         raise Exception("Couldn't find %s" % SCIKIT_CI_CONFIG)
 
-    service_name, stage_key = sys.argv[1:3]
-    if service_name not in SERVICES.keys():
-        raise KeyError("invalid service: {}".format(service_name))
+    stage_key = sys.argv[1]
 
     if stage_key not in stages:
         raise KeyError("invalid stage: {}".format(stage_key))
 
     d = Driver()
     with d.env_context():
-        d.execute_commands(stage_key, service_name)
+        d.execute_commands(stage_key)

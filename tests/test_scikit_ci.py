@@ -45,7 +45,7 @@ def test_scikit_ci(service):
                 'test',
                 'after_test']:
 
-            cmd = "python ci/driver.py %s %s" % (service, step)
+            cmd = "python ci/driver.py %s" % step
             output = check_output(shlex.split(cmd), env=environment).strip()
 
             second_line = "%s / %s" % (step, service)
