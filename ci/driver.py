@@ -107,14 +107,33 @@ class Driver(object):
         and
         https://www.gnu.org/software/bash/manual/html_node/Single-Quotes.html
         """
-        tokens = shlex.split(command, posix=False)
+        # Strip line continuation characters. There are not required
+        # successfully evaluate the expression and were confusion shlex.
+        if posix_shell:
+            command = re.sub(r'\\\n', "", command)
+
+        tokenizer = shlex.shlex(command, posix=False)
+        tokenizer.whitespace_split = True
+        expanded_lines = []
         expanded_tokens = []
-        for token in tokens:
-            if not (posix_shell and token[0] == "'" and token[-1] == "'"):
+        lineno = 1
+        for token in tokenizer:
+            expand = not (posix_shell and token[0] == "'" and token[-1] == "'")
+            if expand:
                 for name, value in environments.items():
                     token = re.sub(r'\$<' + name + r'>', value, token)
+
+            if tokenizer.lineno > lineno:
+                expanded_lines.append(" ".join(expanded_tokens))
+                expanded_tokens = []
+
             expanded_tokens.append(token)
-        return " ".join(expanded_tokens)
+            lineno = tokenizer.lineno
+
+        if expanded_tokens:
+            expanded_lines.append(" ".join(expanded_tokens))
+
+        return "\n".join(expanded_lines)
 
     @staticmethod
     def current_service():

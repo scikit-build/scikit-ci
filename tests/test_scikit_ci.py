@@ -191,3 +191,51 @@ def test_shell_command(tmpdir):
         ]) if step == 'install' else ""
 
         assert output == expected_output
+
+
+def test_multi_line_shell_command(tmpdir):
+    if platform.system().lower() == "windows":
+        tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+            """
+            schema_version: "0.5.0"
+            install:
+              commands:
+                - |
+                  for % G in (foo bar) do ^
+                  python -c "print('var %G')"
+            """
+        ))
+        service = 'appveyor'
+
+    else:
+        tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+            """
+            schema_version: "0.5.0"
+            install:
+              commands:
+                - |
+                  for var in foo bar; do
+                    python -c "print('var $var')"
+                  done
+            """
+        ))
+        service = 'circle'
+
+    for step, system, cmd, environment in scikit_steps(tmpdir, service):
+
+        cmd = "python %s %s" % (DRIVER_SCRIPT, step)
+        output = subprocess.check_output(
+            shlex.split(cmd),
+            env=environment,
+            stderr=subprocess.STDOUT,
+            cwd=str(tmpdir)
+        ).strip()
+
+        print(output)
+
+        expected_output = "\n".join([
+            "var foo",
+            "var bar"
+        ]) if step == 'install' else ""
+
+        assert output == expected_output
