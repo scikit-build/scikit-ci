@@ -6,3 +6,4 @@ env.json
 cache/
 .coverage
 coverage.xml
+htmlcov

@@ -2,12 +2,13 @@
 import os
 import platform
 import pytest
-import shlex
-import subprocess
 import sys
 import textwrap
 
-DRIVER_SCRIPT = os.path.join(os.path.dirname(__file__), '../ci/driver.py')
+from capturer import CaptureOutput
+
+from . import push_dir, push_env
+from ci.driver import main as ci_driver
 
 
 def scikit_steps(tmpdir, service):
@@ -49,8 +50,8 @@ def scikit_steps(tmpdir, service):
                 'build',
                 'test',
                 'after_test']:
-            cmd = "python %s %s" % (DRIVER_SCRIPT, step)
-            yield step, system, cmd, environment
+
+            yield step, system, environment
 
 
 def _generate_scikit_yml_content():
@@ -121,14 +122,13 @@ def test_scikit_ci(service, tmpdir):
         _generate_scikit_yml_content()
     )
 
-    for step, system, cmd, environment in scikit_steps(tmpdir, service):
+    for step, system, environment in scikit_steps(tmpdir, service):
 
-        output = subprocess.check_output(
-            shlex.split(cmd),
-            env=environment,
-            stderr=subprocess.STDOUT,
-            cwd=str(tmpdir)
-        ).strip()
+        with push_dir(str(tmpdir)),\
+             push_env(**environment), \
+             CaptureOutput() as capturer:
+            ci_driver(step)
+            output = capturer.get_text()
 
         second_line = "%s / %s" % (step, service)
         if system:
@@ -172,16 +172,13 @@ def test_shell_command(tmpdir):
         ))
         service = 'circle'
 
-    for step, system, cmd, environment in scikit_steps(tmpdir, service):
+    for step, system, environment in scikit_steps(tmpdir, service):
 
-        output = subprocess.check_output(
-            shlex.split(cmd),
-            env=environment,
-            stderr=subprocess.STDOUT,
-            cwd=str(tmpdir)
-        ).strip()
-
-        print(output)
+        with push_dir(str(tmpdir)), \
+             push_env(**environment), \
+             CaptureOutput() as capturer:
+            ci_driver(step)
+            output = capturer.get_text()
 
         expected_output = "\n".join([
             "var foo",
@@ -221,15 +218,13 @@ def test_multi_line_shell_command(tmpdir):
         ))
         service = 'circle'
 
-    for step, system, cmd, environment in scikit_steps(tmpdir, service):
+    for step, system, environment in scikit_steps(tmpdir, service):
 
-        cmd = "python %s %s" % (DRIVER_SCRIPT, step)
-        output = subprocess.check_output(
-            shlex.split(cmd),
-            env=environment,
-            stderr=subprocess.STDOUT,
-            cwd=str(tmpdir)
-        ).strip()
+        with push_dir(str(tmpdir)), \
+             push_env(**environment), \
+             CaptureOutput() as capturer:
+            ci_driver(step)
+            output = capturer.get_text()
 
         print(output)
 

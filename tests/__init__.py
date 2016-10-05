@@ -2,6 +2,7 @@
 import errno
 import os
 
+from contextlib import contextmanager
 from functools import wraps
 
 
@@ -70,3 +71,19 @@ def mkdir_p(path):
             pass
         else:  # pragma: no cover
             raise
+
+
+@contextmanager
+def push_env(**kwargs):
+    """This context manager allow to set/unset environment variables.
+    """
+    saved_env = dict(os.environ)
+    for var, value in kwargs.items():
+        if value is not None:
+            os.environ[var] = value
+        elif var in os.environ:
+            del os.environ[var]
+    yield
+    os.environ.clear()
+    for (saved_var, saved_value) in saved_env.items():
+        os.environ[saved_var] = saved_value
