@@ -1,10 +1,13 @@
 
 import os
+import platform
 import pytest
 import shlex
 import subprocess
 import sys
 import textwrap
+
+DRIVER_SCRIPT = os.path.join(os.path.dirname(__file__), '../ci/driver.py')
 
 
 def _generate_scikit_yml_content():
@@ -71,8 +74,6 @@ def _generate_scikit_yml_content():
                          ['appveyor', 'circle', 'travis'])
 def test_scikit_ci(service, tmpdir):
 
-    driver_script = os.path.join(os.path.dirname(__file__), '../ci/driver.py')
-
     tmpdir.join('scikit-ci.yml').write(
         _generate_scikit_yml_content()
     )
@@ -113,7 +114,7 @@ def test_scikit_ci(service, tmpdir):
                 'test',
                 'after_test']:
 
-            cmd = "python %s %s" % (driver_script, step)
+            cmd = "python %s %s" % (DRIVER_SCRIPT, step)
             output = subprocess.check_output(
                 shlex.split(cmd),
                 env=environment,
@@ -136,3 +137,53 @@ def test_scikit_ci(service, tmpdir):
             ])
 
             assert output == expected_output
+
+
+def test_shell_command(tmpdir):
+
+    if platform.system().lower() == "windows":
+        tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+            """
+            schema_version: "0.5.0"
+            install:
+              commands:
+                - for %G in (foo bar) do python -c "print('var %G')"
+                - "for %G in oof rab; do python -c \\"print('var: %G')\\"; done"
+            """
+        ))
+        service = 'appveyor'
+    else:
+        tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+            """
+            schema_version: "0.5.0"
+            install:
+              commands:
+                - for var in foo bar; do python -c "print('var $var')"; done
+                - "for var in oof rab; do python -c \\"print('var: $var')\\"; done"
+            """
+        ))
+        service = 'circle'
+
+    step = 'install'
+
+    environment = dict(os.environ)
+    environment[service.upper()] = "true"
+
+    cmd = "python %s %s" % (DRIVER_SCRIPT, step)
+    output = subprocess.check_output(
+        shlex.split(cmd),
+        env=environment,
+        stderr=subprocess.STDOUT,
+        cwd=str(tmpdir)
+    ).strip()
+
+    print(output)
+
+    expected_output = "\n".join([
+        "var foo",
+        "var bar",
+        "var: oof",
+        "var: rab"
+    ])
+
+    assert output == expected_output
