@@ -2,7 +2,6 @@
 import json
 import os
 import os.path
-import re
 import ruamel.yaml
 import shlex
 import subprocess
@@ -110,7 +109,7 @@ class Driver(object):
         # Strip line continuation characters. There are not required
         # successfully evaluate the expression and were confusion shlex.
         if posix_shell:
-            command = re.sub(r'\\\n', "", command)
+            command = command.replace("\\\n", "")
 
         tokenizer = shlex.shlex(command, posix=False)
         tokenizer.whitespace_split = True
@@ -121,7 +120,7 @@ class Driver(object):
             expand = not (posix_shell and token[0] == "'" and token[-1] == "'")
             if expand:
                 for name, value in environments.items():
-                    token = re.sub(r'\$<' + name + r'>', value, token)
+                    token = token.replace("$<%s>" % name, value)
 
             if tokenizer.lineno > lineno:
                 expanded_lines.append(" ".join(expanded_tokens))
