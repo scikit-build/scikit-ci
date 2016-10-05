@@ -7,9 +7,12 @@ Usage::
 
 """
 
+import platform
 import sys
 
 from subprocess import check_call
+
+DEFAULT_CMAKE_VERSION = "3.5.0"
 
 
 def _log(*args):
@@ -17,18 +20,20 @@ def _log(*args):
     sys.stdout.flush()
 
 
-def install(is_darwin=False, cmake_version="3.5"):
+def install(cmake_version=DEFAULT_CMAKE_VERSION, is_darwin=False):
     """Download and install CMake into ``/usr/local``."""
 
     cmake_os = "Darwin" if is_darwin else "Linux"
-    cmake_name = "cmake-{}.0-{}-x86_64".format(cmake_version, cmake_os)
+    cmake_name = "cmake-{}-{}-x86_64".format(cmake_version, cmake_os)
     cmake_package = ".".join((cmake_name, "tar", "gz"))
+    cmake_version_major = cmake_version.split(".")[0]
+    cmake_version_minor = cmake_version.split(".")[1]
 
     _log("Downloading", cmake_package)
     check_call([
         "wget", "--no-check-certificate", "--progress=dot",
-        "https://cmake.org/files/v{}/{}".format(
-            cmake_version, cmake_package)
+        "https://cmake.org/files/v{}.{}/{}".format(
+            cmake_version_major, cmake_version_minor, cmake_package)
     ])
 
     _log("Extracting", cmake_package)
@@ -58,4 +63,5 @@ def install(is_darwin=False, cmake_version="3.5"):
 
 
 if __name__ == '__main__':
-    install()
+    install(sys.argv[1] if len(sys.argv) > 1 else DEFAULT_CMAKE_VERSION,
+            is_darwin=platform.system().lower() == "darwin")

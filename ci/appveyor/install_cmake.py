@@ -17,6 +17,8 @@ try:
 except ImportError:
     from urllib2 import urlopen
 
+DEFAULT_CMAKE_VERSION = "3.5.2"
+
 
 def _log(*args):
     print(" ".join(args))
@@ -28,15 +30,19 @@ def _env_prepend(key, *values):
         list(values) + os.environ.get(key, "").split(os.pathsep))
 
 
-def install():
+def install(cmake_version=DEFAULT_CMAKE_VERSION):
     """Download and install CMake into ``C:\\cmake``.
 
     The function also make sure to prepend ``C:\\cmake\\bin``
     to the ``PATH``."""
 
-    _log("Downloading CMake")
+    cmake_version_major = cmake_version.split(".")[0]
+    cmake_version_minor = cmake_version.split(".")[1]
+
+    _log("Downloading CMake", cmake_version)
     remote_file = urlopen(
-        "https://cmake.org/files/v3.5/cmake-3.5.2-win32-x86.zip")
+        "https://cmake.org/files/v{}.{}/cmake-{}-win32-x86.zip".format(
+            cmake_version_major, cmake_version_minor, cmake_version))
 
     with open("C:\\cmake.zip", "wb") as local_file:
         shutil.copyfileobj(remote_file, local_file)
@@ -55,4 +61,4 @@ def install():
 
 
 if __name__ == '__main__':
-    install()
+    install(sys.argv[1] if len(sys.argv) > 1 else DEFAULT_CMAKE_VERSION)
