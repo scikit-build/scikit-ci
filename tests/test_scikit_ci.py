@@ -89,7 +89,7 @@ def _generate_scikit_yml_content():
                 SERVICE: travis-osx
               commands:
                 - python -c 'import os; print("%s / %s / %s" % (os.environ["WHAT"], os.environ["SERVICE"], os.environ["TRAVIS_OS_NAME"]))'
-        """
+        """  # noqa: E501
     )
 
     template = (
@@ -102,12 +102,12 @@ def _generate_scikit_yml_content():
     return textwrap.dedent(template).format(
             "".join(
                 [textwrap.dedent(template_step).format(what=step) for step in
-                       ['before_install',
-                        'install',
-                        'before_build',
-                        'build',
-                        'test',
-                        'after_test']
+                 ['before_install',
+                  'install',
+                  'before_build',
+                  'build',
+                  'test',
+                  'after_test']
                  ]
             )
     )
@@ -168,7 +168,7 @@ def test_shell_command(tmpdir):
               commands:
                 - for var in foo bar; do python -c "print('var $var')"; done
                 - "for var in oof rab; do python -c \\"print('var: $var')\\"; done"
-            """
+            """  # noqa: E501
         ))
         service = 'circle'
 
