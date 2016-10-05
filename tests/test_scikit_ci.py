@@ -2,6 +2,7 @@
 import os
 import platform
 import pytest
+import subprocess
 import sys
 import textwrap
 
@@ -265,3 +266,30 @@ def test_expand_environment_vars(command, posix_shell, expected):
 ])
 def test_expand_environment_vars_with_newline(command, posix_shell, expected):
     _expand_environment_vars_test(command, posix_shell, expected)
+
+
+def test_cli(tmpdir):
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "0.5.0"
+        install:
+          commands:
+            - "python -c \"with open('install-done', 'w') as file: file.write('')\""
+        """  # noqa: E501
+    ))
+    service = 'circle'
+
+    environment = dict(os.environ)
+    environment[service.upper()] = "true"
+
+    driver_script = os.path.join(os.path.dirname(__file__), '../ci/driver.py')
+
+    subprocess.check_call(
+        "python %s %s" % (driver_script, "install"),
+        shell=True,
+        env=environment,
+        stderr=subprocess.STDOUT,
+        cwd=str(tmpdir)
+    )
+
+    assert tmpdir.join("install-done").exists()
