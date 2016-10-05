@@ -59,6 +59,8 @@ def test_scikit_ci(service):
 
             expected_output = "\n".join([
                 "%s" % step,
+                "expand: %s" % step,
+                "expand-2:%s" % (step if service == 'appveyor' else "$<WHAT>"),
                 "Python %d.%d.%d" % (sys.version_info[:3]),
                 second_line
             ])

@@ -6,6 +6,8 @@ before_install:
     WHAT: before_install
   commands:
     - python -c 'import os; print("%s" % os.environ["WHAT"])'
+    - python -c "import os; print('expand:%s' % \"$<WHAT>\")"
+    - python -c 'import os; print("expand-2:%s" % "$<WHAT>")'
     - python --version
 
   appveyor:
@@ -38,6 +40,8 @@ install:
     WHAT: install
   commands:
     - python -c 'import os; print("%s" % os.environ["WHAT"])'
+    - python -c "import os; print('expand:%s' % \"$<WHAT>\")"
+    - python -c 'import os; print("expand-2:%s" % "$<WHAT>")'
     - python --version
 
   appveyor:
@@ -70,6 +74,8 @@ before_build:
     WHAT: before_build
   commands:
     - python -c 'import os; print("%s" % os.environ["WHAT"])'
+    - python -c "import os; print('expand:%s' % \"$<WHAT>\")"
+    - python -c 'import os; print("expand-2:%s" % "$<WHAT>")'
     - python --version
 
   appveyor:
@@ -102,6 +108,8 @@ build:
     WHAT: build
   commands:
     - python -c 'import os; print("%s" % os.environ["WHAT"])'
+    - python -c "import os; print('expand:%s' % \"$<WHAT>\")"
+    - python -c 'import os; print("expand-2:%s" % "$<WHAT>")'
     - python --version
 
   appveyor:
@@ -134,6 +142,8 @@ test:
     WHAT: test
   commands:
     - python -c 'import os; print("%s" % os.environ["WHAT"])'
+    - python -c "import os; print('expand:%s' % \"$<WHAT>\")"
+    - python -c 'import os; print("expand-2:%s" % "$<WHAT>")'
     - python --version
 
   appveyor:
@@ -166,6 +176,8 @@ after_test:
     WHAT: after_test
   commands:
     - python -c 'import os; print("%s" % os.environ["WHAT"])'
+    - python -c "import os; print('expand:%s' % \"$<WHAT>\")"
+    - python -c 'import os; print("expand-2:%s" % "$<WHAT>")'
     - python --version
 
   appveyor:

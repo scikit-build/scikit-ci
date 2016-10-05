@@ -2,6 +2,7 @@
 import json
 import os
 import os.path
+import re
 import ruamel.yaml
 import shlex
 import subprocess
@@ -23,6 +24,15 @@ SERVICES = {
     "appveyor": None,
     "circle": None,
     "travis": "TRAVIS_OS_NAME"
+}
+
+POSIX_SHELL = True
+
+SERVICES_SHELL_CONFIG = {
+    'appveyor-None': not POSIX_SHELL,
+    'circle-None': POSIX_SHELL,
+    'travis-linux': POSIX_SHELL,
+    'travis-osx': POSIX_SHELL,
 }
 
 
@@ -83,6 +93,30 @@ class Driver(object):
         return DriverContext(self, env_file)
 
     @staticmethod
+    def expand_environment_vars(command, environments, posix_shell=True):
+        """ Return an updated ``command`` string where all occurrences of
+        ``$<EnvironmentVarName>`` (with a corresponding env variable set) have
+        been replaced.
+
+        If ``posix_shell`` is True, only occurrences of
+        ``$<EnvironmentVarName>`` in string starting with double quotes will
+        be replaced.
+
+        See
+        https://www.gnu.org/software/bash/manual/html_node/Double-Quotes.html
+        and
+        https://www.gnu.org/software/bash/manual/html_node/Single-Quotes.html
+        """
+        tokens = shlex.split(command, posix=False)
+        expanded_tokens = []
+        for token in tokens:
+            if not (posix_shell and token[0] == "'" and token[-1] == "'"):
+                for name, value in environments.items():
+                    token = re.sub(r'\$<' + name + r'>', value, token)
+            expanded_tokens.append(token)
+        return " ".join(expanded_tokens)
+
+    @staticmethod
     def current_service():
         for service in SERVICES.keys():
             if os.environ.get(service.upper(), 'false') == 'true':
@@ -92,6 +126,10 @@ class Driver(object):
             "is set to 'true'".format(", ".join(
                 [service.upper() for service in SERVICES.keys()]))
         )
+
+    @staticmethod
+    def current_operating_system(service):
+        return os.environ[SERVICES[service]] if SERVICES[service] else None
 
     @staticmethod
     def parse_config(config_file, stage_name, service_name):
@@ -129,7 +167,12 @@ class Driver(object):
 
         self.env.update(environment)
 
+        posix_shell = SERVICES_SHELL_CONFIG['{}-{}'.format(
+            service_name, self.current_operating_system(service_name))]
+
         for cmd in commands:
+            cmd = self.expand_environment_vars(
+                cmd, environment, posix_shell=posix_shell)
             self.check_call(shlex.split(cmd), env=self.env)
 
 
