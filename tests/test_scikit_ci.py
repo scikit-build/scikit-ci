@@ -10,6 +10,49 @@ import textwrap
 DRIVER_SCRIPT = os.path.join(os.path.dirname(__file__), '../ci/driver.py')
 
 
+def scikit_steps(tmpdir, service):
+    """Given ``tmpdir`` and ``service``, this generator yields
+    ``(step, system, cmd, environment)`` for all supported steps.
+    """
+    # Set variable like CIRCLE="true" allowing to test for the service
+    environment = dict(os.environ)
+    environment[service.upper()] = "true"
+
+    # By default, a service is associated with only one "implicit" operating
+    # system.
+    # Service supporting multiple operating system (e.g travis) should be
+    # specified below.
+    osenv_per_service = {
+        "travis": {"linux": "TRAVIS_OS_NAME", "osx": "TRAVIS_OS_NAME"}
+    }
+
+    systems = [None]
+
+    osenv = osenv_per_service.get(service, {})
+    if osenv:
+        systems = osenv.keys()
+
+    for system in systems:
+
+        # Remove leftover 'env.json'
+        env_json = tmpdir.join("env.json")
+        if env_json.exists():
+            env_json.remove()
+
+        if system:
+            environment[osenv[system]] = system
+
+        for step in [
+                'before_install',
+                'install',
+                'before_build',
+                'build',
+                'test',
+                'after_test']:
+            cmd = "python %s %s" % (DRIVER_SCRIPT, step)
+            yield step, system, cmd, environment
+
+
 def _generate_scikit_yml_content():
     template_step = (
         """
@@ -78,65 +121,30 @@ def test_scikit_ci(service, tmpdir):
         _generate_scikit_yml_content()
     )
 
-    # Set variable like CIRCLE="true" allowing to test for the service
-    environment = dict(os.environ)
-    environment[service.upper()] = "true"
+    for step, system, cmd, environment in scikit_steps(tmpdir, service):
 
-    # By default, a service is associated with only one "implicit" operating
-    # system.
-    # Service supporting multiple operating system (e.g travis) should be
-    # specified below.
-    osenv_per_service = {
-        "travis": {"linux": "TRAVIS_OS_NAME", "osx": "TRAVIS_OS_NAME"}
-    }
+        output = subprocess.check_output(
+            shlex.split(cmd),
+            env=environment,
+            stderr=subprocess.STDOUT,
+            cwd=str(tmpdir)
+        ).strip()
 
-    systems = [None]
-
-    osenv = osenv_per_service.get(service, {})
-    if osenv:
-        systems = osenv.keys()
-
-    for system in systems:
-
-        # Remove leftover 'env.json'
-        env_json = tmpdir.join("env.json")
-        if env_json.exists():
-            env_json.remove()
-
+        second_line = "%s / %s" % (step, service)
         if system:
-            environment[osenv[system]] = system
+            second_line = "%s-%s / %s" % (second_line, system, system)
 
-        for step in [
-                'before_install',
-                'install',
-                'before_build',
-                'build',
-                'test',
-                'after_test']:
+        print(output)
 
-            cmd = "python %s %s" % (DRIVER_SCRIPT, step)
-            output = subprocess.check_output(
-                shlex.split(cmd),
-                env=environment,
-                stderr=subprocess.STDOUT,
-                cwd=str(tmpdir)
-            ).strip()
+        expected_output = "\n".join([
+            "%s" % step,
+            "expand: %s" % step,
+            "expand-2:%s" % (step if service == 'appveyor' else "$<WHAT>"),
+            "Python %d.%d.%d" % (sys.version_info[:3]),
+            second_line
+        ])
 
-            second_line = "%s / %s" % (step, service)
-            if system:
-                second_line = "%s-%s / %s" % (second_line, system, system)
-
-            print(output)
-
-            expected_output = "\n".join([
-                "%s" % step,
-                "expand: %s" % step,
-                "expand-2:%s" % (step if service == 'appveyor' else "$<WHAT>"),
-                "Python %d.%d.%d" % (sys.version_info[:3]),
-                second_line
-            ])
-
-            assert output == expected_output
+        assert output == expected_output
 
 
 def test_shell_command(tmpdir):
