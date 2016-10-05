@@ -194,8 +194,7 @@ class Driver(object):
             self.check_call(cmd, env=self.env, shell=True)
 
 
-if __name__ == "__main__":
-
+def main(stage):
     stages = [
         "before_install",
         "install",
@@ -208,11 +207,12 @@ if __name__ == "__main__":
     if not os.path.exists(SCIKIT_CI_CONFIG):
         raise Exception("Couldn't find %s" % SCIKIT_CI_CONFIG)
 
-    stage_key = sys.argv[1]
-
-    if stage_key not in stages:
-        raise KeyError("invalid stage: {}".format(stage_key))
+    if stage not in stages:
+        raise KeyError("invalid stage: {}".format(stage))
 
     d = Driver()
     with d.env_context():
-        d.execute_commands(stage_key)
+        d.execute_commands(stage)
+
+if __name__ == "__main__":
+    main(sys.argv[1])
