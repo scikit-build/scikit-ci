@@ -8,6 +8,7 @@ import textwrap
 from capturer import CaptureOutput
 
 from . import push_dir, push_env
+from ci.driver import Driver
 from ci.driver import main as ci_driver
 
 
@@ -234,3 +235,33 @@ def test_multi_line_shell_command(tmpdir):
         ]) if step == 'install' else ""
 
         assert output == expected_output
+
+
+def _expand_environment_vars_test(command, posix_shell, expected):
+    environments = {
+        "OTHER": "unused",
+        "FO": "foo"
+    }
+    assert (
+        Driver.expand_environment_vars(command, environments, posix_shell)
+        == expected)
+
+
+@pytest.mark.parametrize("command, posix_shell, expected", [
+    (r"""echo "$<FO>", "$<B>", $<FO>""", False, 'echo "foo" , "$<B>" , foo'),
+    (r"""echo '$<FO>', '$<B>', $<FO>""", False, "echo 'foo' , '$<B>' , foo"),
+    (r"""echo "$<FO>", "$<B>", $<FO>""", True, 'echo "foo" , "$<B>" , foo'),
+    (r"""echo '$<FO>', '$<B>', $<FO>""", True, "echo '$<FO>' , '$<B>' , foo"),
+])
+def test_expand_environment_vars(command, posix_shell, expected):
+    _expand_environment_vars_test(command, posix_shell, expected)
+
+
+@pytest.mark.parametrize("command, posix_shell, expected", [
+    (r"""echo "$<FO>", \
+"$<B>", $<FO>""", True, 'echo "foo" , "$<B>" , foo'),
+    (r"""echo '$<FO>', \
+'$<B>', $<FO>""", True, "echo '$<FO>' , '$<B>' , foo"),
+])
+def test_expand_environment_vars_with_newline(command, posix_shell, expected):
+    _expand_environment_vars_test(command, posix_shell, expected)
