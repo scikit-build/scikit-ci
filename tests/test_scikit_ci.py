@@ -118,7 +118,7 @@ def _generate_scikit_yml_content():
 
 @pytest.mark.parametrize("service",
                          ['appveyor', 'circle', 'travis'])
-def test_scikit_ci(service, tmpdir):
+def test_driver(service, tmpdir):
 
     tmpdir.join('scikit-ci.yml').write(
         _generate_scikit_yml_content()
