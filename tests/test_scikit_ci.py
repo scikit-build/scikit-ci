@@ -2,8 +2,8 @@
 import os
 import pytest
 import shlex
-
-from subprocess import check_output
+import subprocess
+import sys
 
 
 @pytest.mark.parametrize("service",
@@ -46,7 +46,10 @@ def test_scikit_ci(service):
                 'after_test']:
 
             cmd = "python ci/driver.py %s" % step
-            output = check_output(shlex.split(cmd), env=environment).strip()
+            output = subprocess.check_output(
+                shlex.split(cmd),
+                env=environment,
+                stderr=subprocess.STDOUT).strip()
 
             second_line = "%s / %s" % (step, service)
             if system:
@@ -56,6 +59,7 @@ def test_scikit_ci(service):
 
             expected_output = "\n".join([
                 "%s" % step,
+                "Python %d.%d.%d" % (sys.version_info[:3]),
                 second_line
             ])
 
