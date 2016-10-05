@@ -4,11 +4,78 @@ import pytest
 import shlex
 import subprocess
 import sys
+import textwrap
+
+
+def _generate_scikit_yml_content():
+    template_step = (
+        """
+        {what}:
+
+          environment:
+            WHAT: {what}
+          commands:
+            - python -c 'import os; print("%s" % os.environ["WHAT"])'
+            - python -c "import os; print('expand:%s' % \\"$<WHAT>\\")"
+            - python -c 'import os; print("expand-2:%s" % "$<WHAT>")'
+            - python --version
+
+          appveyor:
+            environment:
+              SERVICE: appveyor
+            commands:
+              - python -c 'import os; print("%s / %s" % (os.environ["WHAT"], os.environ["SERVICE"]))'
+
+          circle:
+            environment:
+              SERVICE: circle
+            commands:
+              - python -c 'import os; print("%s / %s" % (os.environ["WHAT"], os.environ["SERVICE"]))'
+
+          travis:
+            linux:
+              environment:
+                SERVICE: travis-linux
+              commands:
+                - python -c 'import os; print("%s / %s / %s" % (os.environ["WHAT"], os.environ["SERVICE"], os.environ["TRAVIS_OS_NAME"]))'
+            osx:
+              environment:
+                SERVICE: travis-osx
+              commands:
+                - python -c 'import os; print("%s / %s / %s" % (os.environ["WHAT"], os.environ["SERVICE"], os.environ["TRAVIS_OS_NAME"]))'
+        """
+    )
+
+    template = (
+        """
+        schema_version: "0.5.0"
+        {}
+        """
+    )
+
+    return textwrap.dedent(template).format(
+            "".join(
+                [textwrap.dedent(template_step).format(what=step) for step in
+                       ['before_install',
+                        'install',
+                        'before_build',
+                        'build',
+                        'test',
+                        'after_test']
+                 ]
+            )
+    )
 
 
 @pytest.mark.parametrize("service",
                          ['appveyor', 'circle', 'travis'])
-def test_scikit_ci(service):
+def test_scikit_ci(service, tmpdir):
+
+    driver_script = os.path.join(os.path.dirname(__file__), '../ci/driver.py')
+
+    tmpdir.join('scikit-ci.yml').write(
+        _generate_scikit_yml_content()
+    )
 
     # Set variable like CIRCLE="true" allowing to test for the service
     environment = dict(os.environ)
@@ -31,8 +98,9 @@ def test_scikit_ci(service):
     for system in systems:
 
         # Remove leftover 'env.json'
-        if os.path.exists("env.json"):
-            os.remove("env.json")
+        env_json = tmpdir.join("env.json")
+        if env_json.exists():
+            env_json.remove()
 
         if system:
             environment[osenv[system]] = system
@@ -45,11 +113,13 @@ def test_scikit_ci(service):
                 'test',
                 'after_test']:
 
-            cmd = "python ci/driver.py %s" % step
+            cmd = "python %s %s" % (driver_script, step)
             output = subprocess.check_output(
                 shlex.split(cmd),
                 env=environment,
-                stderr=subprocess.STDOUT).strip()
+                stderr=subprocess.STDOUT,
+                cwd=str(tmpdir)
+            ).strip()
 
             second_line = "%s / %s" % (step, service)
             if system:
