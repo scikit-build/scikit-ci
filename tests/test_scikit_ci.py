@@ -172,26 +172,22 @@ def test_shell_command(tmpdir):
         ))
         service = 'circle'
 
-    step = 'install'
+    for step, system, cmd, environment in scikit_steps(tmpdir, service):
 
-    environment = dict(os.environ)
-    environment[service.upper()] = "true"
+        output = subprocess.check_output(
+            shlex.split(cmd),
+            env=environment,
+            stderr=subprocess.STDOUT,
+            cwd=str(tmpdir)
+        ).strip()
 
-    cmd = "python %s %s" % (DRIVER_SCRIPT, step)
-    output = subprocess.check_output(
-        shlex.split(cmd),
-        env=environment,
-        stderr=subprocess.STDOUT,
-        cwd=str(tmpdir)
-    ).strip()
+        print(output)
 
-    print(output)
+        expected_output = "\n".join([
+            "var foo",
+            "var bar",
+            "var: oof",
+            "var: rab"
+        ]) if step == 'install' else ""
 
-    expected_output = "\n".join([
-        "var foo",
-        "var bar",
-        "var: oof",
-        "var: rab"
-    ])
-
-    assert output == expected_output
+        assert output == expected_output
