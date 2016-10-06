@@ -329,6 +329,9 @@ def test_environment_persist(tmpdir):
             EMPTY: ""
           commands:
             - echo "1 [$<FOO>] [$<BAR>] [$<EMPTY>]"
+          circle:
+            environment:
+              BAR: under world
         install:
           environment:
             BAR: beautiful world
@@ -348,7 +351,7 @@ def test_environment_persist(tmpdir):
         output = capturer.get_text()
 
     expected_output = "\n".join([
-        "1 [hello] [world] []",
+        "1 [hello] [under world] []",
         "2 [hello] [beautiful world] []"
     ])
 
