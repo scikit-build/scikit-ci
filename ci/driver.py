@@ -159,6 +159,10 @@ class Driver(object):
 
         self.env.update(environment)
 
+        for name, value in self.env.items():
+            self.env[name] = self.expand_environment_vars(
+                value, self.env, posix_shell=False)
+
         posix_shell = SERVICES_SHELL_CONFIG['{}-{}'.format(
             service_name, utils.current_operating_system(service_name))]
 

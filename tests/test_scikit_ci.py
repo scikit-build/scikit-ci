@@ -356,3 +356,32 @@ def test_environment_persist(tmpdir):
     ])
 
     assert output == expected_output
+
+
+def test_within_environment_expansion(tmpdir):
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "0.5.0"
+        before_install:
+          environment:
+            FOO: hello
+            BAR: $<WHAT>
+          commands:
+            - echo "[$<FOO>] [$<BAR>]"
+        """
+    ))
+    service = 'circle'
+
+    environment = dict(os.environ)
+    environment[SERVICES_ENV_VAR[service]] = "true"
+
+    environment["WHAT"] = "world"
+
+    with push_dir(str(tmpdir)), push_env(**environment), \
+            CaptureOutput() as capturer:
+        ci_driver("before_install")
+        output = capturer.get_text()
+
+    expected_output = "[hello] [world]"
+
+    assert output == expected_output
