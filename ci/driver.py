@@ -11,7 +11,7 @@ from constants import SCIKIT_CI_CONFIG, SERVICES
 
 try:
     from . import utils
-except ValueError:
+except (SystemError, ValueError):
     import utils
 
 POSIX_SHELL = True

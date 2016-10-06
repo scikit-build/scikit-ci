@@ -3,7 +3,7 @@ import os
 import subprocess
 import sys
 
-from driver import Driver
+from utils import current_service
 
 
 DEFAULT_CMAKE_VERSION = "3.6.2"
@@ -15,7 +15,7 @@ def install(cmake_version=DEFAULT_CMAKE_VERSION):
 
     subprocess.check_call([
         sys.executable,
-        "%s/%s/install_cmake.py" % (script_dir, Driver.current_service()),
+        "%s/%s/install_cmake.py" % (script_dir, current_service()),
         cmake_version])
 
 if __name__ == '__main__':
