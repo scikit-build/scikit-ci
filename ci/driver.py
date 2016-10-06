@@ -25,6 +25,12 @@ SERVICES = {
     "travis": "TRAVIS_OS_NAME"
 }
 
+SERVICES_ENV_VAR = {
+    "appveyor": "APPVEYOR",
+    "circle": "CIRCLECI",
+    "travis": "TRAVIS",
+}
+
 POSIX_SHELL = True
 
 SERVICES_SHELL_CONFIG = {
@@ -137,12 +143,11 @@ class Driver(object):
     @staticmethod
     def current_service():
         for service in SERVICES.keys():
-            if os.environ.get(service.upper(), 'false') == 'true':
+            if os.environ.get(SERVICES_ENV_VAR[service], 'false') == 'true':
                 return service
         raise Exception(
             "unknown service: None of the environment variables {} "
-            "is set to 'true'".format(", ".join(
-                [service.upper() for service in SERVICES.keys()]))
+            "is set to 'true'".format(", ".join(SERVICES_ENV_VAR.values()))
         )
 
     @staticmethod

@@ -9,7 +9,7 @@ import textwrap
 from capturer import CaptureOutput
 
 from . import push_dir, push_env
-from ci.driver import Driver
+from ci.driver import Driver, SERVICES_ENV_VAR
 from ci.driver import main as ci_driver
 
 
@@ -19,7 +19,7 @@ def scikit_steps(tmpdir, service):
     """
     # Set variable like CIRCLE="true" allowing to test for the service
     environment = dict(os.environ)
-    environment[service.upper()] = "true"
+    environment[SERVICES_ENV_VAR[service]] = "true"
 
     # By default, a service is associated with only one "implicit" operating
     # system.
@@ -280,7 +280,7 @@ def test_cli(tmpdir):
     service = 'circle'
 
     environment = dict(os.environ)
-    environment[service.upper()] = "true"
+    environment[SERVICES_ENV_VAR[service]] = "true"
 
     driver_script = os.path.join(os.path.dirname(__file__), '../ci/driver.py')
 
