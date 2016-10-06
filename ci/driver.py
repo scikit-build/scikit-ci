@@ -7,29 +7,12 @@ import shlex
 import subprocess
 import sys
 
-"""Name of the configuration."""
-SCIKIT_CI_CONFIG = "scikit-ci.yml"
+from constants import SCIKIT_CI_CONFIG, SERVICES
 
-"""Describes the supported services.
-
-Service associated with only one "implicit" operating system
-are associated with the value ``None``.
-
-Service supporting multiple operating systems (e.g. travis) are
-associated with the name of environment variable describing the
-operating system in use. (e.g ``TRAVIS_OS_NAME``).
-"""
-SERVICES = {
-    "appveyor": None,
-    "circle": None,
-    "travis": "TRAVIS_OS_NAME"
-}
-
-SERVICES_ENV_VAR = {
-    "appveyor": "APPVEYOR",
-    "circle": "CIRCLECI",
-    "travis": "TRAVIS",
-}
+try:
+    from . import utils
+except ValueError:
+    import utils
 
 POSIX_SHELL = True
 
@@ -141,21 +124,6 @@ class Driver(object):
         return "\n".join(expanded_lines)
 
     @staticmethod
-    def current_service():
-        for service in SERVICES.keys():
-            if os.environ.get(
-                    SERVICES_ENV_VAR[service], 'false').lower() == 'true':
-                return service
-        raise Exception(
-            "unknown service: None of the environment variables {} "
-            "is set to 'true'".format(", ".join(SERVICES_ENV_VAR.values()))
-        )
-
-    @staticmethod
-    def current_operating_system(service):
-        return os.environ[SERVICES[service]] if SERVICES[service] else None
-
-    @staticmethod
     def parse_config(config_file, stage_name, service_name):
         with open(config_file) as input_stream:
             data = ruamel.yaml.load(input_stream, ruamel.yaml.RoundTripLoader)
@@ -184,7 +152,7 @@ class Driver(object):
 
     def execute_commands(self, stage_name):
 
-        service_name = self.current_service()
+        service_name = utils.current_service()
 
         environment, commands = self.parse_config(
             SCIKIT_CI_CONFIG, stage_name, service_name)
@@ -192,7 +160,7 @@ class Driver(object):
         self.env.update(environment)
 
         posix_shell = SERVICES_SHELL_CONFIG['{}-{}'.format(
-            service_name, self.current_operating_system(service_name))]
+            service_name, utils.current_operating_system(service_name))]
 
         for cmd in commands:
             cmd = self.expand_environment_vars(

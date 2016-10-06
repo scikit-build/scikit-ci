@@ -9,7 +9,8 @@ import textwrap
 from capturer import CaptureOutput
 
 from . import push_dir, push_env
-from ci.driver import Driver, SERVICES_ENV_VAR
+from ci.constants import SERVICES_ENV_VAR
+from ci.driver import Driver
 from ci.driver import main as ci_driver
 
 
