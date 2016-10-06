@@ -326,9 +326,13 @@ def test_environment_persist(tmpdir):
             FOO: hello
             BAR: world
             EMPTY: ""
-        install:
           commands:
-            - echo "[$<FOO>] [$<BAR>] [$<EMPTY>]"
+            - echo "1 [$<FOO>] [$<BAR>] [$<EMPTY>]"
+        install:
+          environment:
+            BAR: beautiful world
+          commands:
+            - echo "2 [$<FOO>] [$<BAR>] [$<EMPTY>]"
         """
     ))
     service = 'circle'
@@ -342,4 +346,9 @@ def test_environment_persist(tmpdir):
         ci_driver("install")
         output = capturer.get_text()
 
-    assert output == "[hello] [world] []"
+    expected_output = "\n".join([
+        "1 [hello] [world] []",
+        "2 [hello] [beautiful world] []"
+    ])
+
+    assert output == expected_output
