@@ -143,7 +143,8 @@ class Driver(object):
     @staticmethod
     def current_service():
         for service in SERVICES.keys():
-            if os.environ.get(SERVICES_ENV_VAR[service], 'false') == 'true':
+            if os.environ.get(
+                    SERVICES_ENV_VAR[service], 'false').lower() == 'true':
                 return service
         raise Exception(
             "unknown service: None of the environment variables {} "
