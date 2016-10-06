@@ -142,7 +142,7 @@ def test_driver(service, tmpdir):
             "%s" % step,
             "expand: %s" % step,
             "expand-2:%s" % (step if service == 'appveyor' else "$<WHAT>"),
-            "Python %d.%d.%d" % (sys.version_info[:3]),
+            "Python %s" % sys.version.split()[0],
             second_line
         ])
 
