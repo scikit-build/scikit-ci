@@ -7,6 +7,7 @@ Usage::
 
 """
 
+import os
 import shutil
 import sys
 
@@ -19,8 +20,11 @@ SCRIPT_URL = \
     "https://raw.githubusercontent.com/ogrisel/python-appveyor-demo/" \
     "f54ec3593bcea682098a59b560c1850c19746e10/appveyor/run_with_env.cmd"
 
+LOCAL_PATH_DEFAULT = \
+    os.path.join(os.path.dirname(__file__), "run-with-visual-studio.cmd")
 
-def install(local_path):
+
+def install(local_path=LOCAL_PATH_DEFAULT):
     """Download ``run_with_env.cmd`` and copy it to ``local_path``"""
 
     remote_script = urlopen(SCRIPT_URL)
@@ -28,4 +32,4 @@ def install(local_path):
         shutil.copyfileobj(remote_script, local_script)
 
 if __name__ == '__main__':
-    install(sys.argv[0])
+    install(sys.argv[1])
