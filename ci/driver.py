@@ -173,7 +173,7 @@ class Driver(object):
                 # consider service offering multiple operating system support
                 if SERVICES[service_name]:
                     operating_system = os.environ[SERVICES[service_name]]
-                    system = system[operating_system]
+                    system = system.get(operating_system, {})
 
                 # if any, append service specific environment and commands
                 environment.update(system.get("environment", {}))

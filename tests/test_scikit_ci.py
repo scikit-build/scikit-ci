@@ -293,3 +293,25 @@ def test_cli(tmpdir):
     )
 
     assert tmpdir.join("install-done").exists()
+
+
+def test_not_all_operating_system(tmpdir):
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "0.5.0"
+        install:
+          travis:
+            osx:
+              environment:
+                FOO: BAR
+        """  # noqa: E501
+    ))
+    service = 'travis'
+
+    environment = dict(os.environ)
+    environment[SERVICES_ENV_VAR[service]] = "true"
+
+    environment["TRAVIS_OS_NAME"] = "linux"
+
+    with push_dir(str(tmpdir)), push_env(**environment):
+        ci_driver("install")
