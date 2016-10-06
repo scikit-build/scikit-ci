@@ -24,7 +24,7 @@ def install(cmake_version=DEFAULT_CMAKE_VERSION):
 
     check_call([
         "wget", "--no-check-certificate", "--progress=dot",
-        "https://cmake.org/files/v3.5/{}.tar.gz".format(
+        "https://cmake.org/files/v{}.{}/{}.tar.gz".format(
             cmake_version_major, cmake_version_minor, name)
     ])
     check_call(["tar", "xzf", name + ".tar.gz"])
