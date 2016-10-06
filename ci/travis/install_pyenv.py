@@ -3,10 +3,11 @@
 Usage::
 
     import install_pyenv
-    install_pyenv.install()
+    install_pyenv.install("3.4.5")
 
 """
 
+import os
 import sys
 
 from subprocess import check_call
@@ -41,4 +42,4 @@ def install(py_version):
 
 
 if __name__ == '__main__':
-    install()
+    install(os.environ['PYTHONVERSION'])
