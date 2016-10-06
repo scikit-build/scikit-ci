@@ -315,3 +315,31 @@ def test_not_all_operating_system(tmpdir):
 
     with push_dir(str(tmpdir)), push_env(**environment):
         ci_driver("install")
+
+
+def test_environment_persist(tmpdir):
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "0.5.0"
+        before_install:
+          environment:
+            FOO: hello
+            BAR: world
+            EMPTY: ""
+        install:
+          commands:
+            - echo "[$<FOO>] [$<BAR>] [$<EMPTY>]"
+        """
+    ))
+    service = 'circle'
+
+    environment = dict(os.environ)
+    environment[SERVICES_ENV_VAR[service]] = "true"
+
+    with push_dir(str(tmpdir)), push_env(**environment), \
+            CaptureOutput() as capturer:
+        ci_driver("before_install")
+        ci_driver("install")
+        output = capturer.get_text()
+
+    assert output == "[hello] [world] []"

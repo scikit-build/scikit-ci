@@ -195,7 +195,7 @@ class Driver(object):
 
         for cmd in commands:
             cmd = self.expand_environment_vars(
-                cmd, environment, posix_shell=posix_shell)
+                cmd, self.env, posix_shell=posix_shell)
             self.check_call(cmd, env=self.env, shell=True)
 
 
