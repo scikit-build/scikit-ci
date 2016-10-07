@@ -111,7 +111,9 @@ class Driver(object):
 
                 def expand_token(_token):
                     for name, value in environments.items():
-                        _token = _token.replace("$<%s>" % name, value.replace("\"", "\\\""))
+                        _token = _token.replace(
+                            "$<%s>" % name,
+                            value.replace("\\", "\\\\").replace("\"", "\\\""))
                     return _token
 
                 token = expand_token(token)
