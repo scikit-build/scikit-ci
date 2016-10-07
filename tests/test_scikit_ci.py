@@ -131,23 +131,17 @@ def test_driver(service, tmpdir):
              push_env(**environment), \
              CaptureOutput() as capturer:
             ci_driver(step)
-            output = capturer.get_text()
+            output_lines = capturer.get_lines()
 
         second_line = "%s / %s" % (step, service)
         if system:
             second_line = "%s-%s / %s" % (second_line, system, system)
 
-        print(output)
-
-        expected_output = "\n".join([
-            "%s" % step,
-            "expand: %s" % step,
-            "expand-2:%s" % (step if service == 'appveyor' else "$<WHAT>"),
-            "Python %s" % sys.version.split()[0],
-            second_line
-        ])
-
-        assert output == expected_output
+        assert output_lines[1] == "%s" % step
+        assert output_lines[3] == "expand: %s" % step
+        assert output_lines[5] == "expand-2:%s" % (step if service == 'appveyor' else "$<WHAT>")
+        assert output_lines[7] == "Python %s" % sys.version.split()[0]
+        assert output_lines[9] == second_line
 
 
 def test_shell_command(tmpdir):
@@ -181,16 +175,15 @@ def test_shell_command(tmpdir):
              push_env(**environment), \
              CaptureOutput() as capturer:
             ci_driver(step)
-            output = capturer.get_text()
+            output_lines = capturer.get_lines()
 
-        expected_output = "\n".join([
-            "var foo",
-            "var bar",
-            "var: oof",
-            "var: rab"
-        ]) if step == 'install' else ""
-
-        assert output == expected_output
+        if step == 'install':
+            assert output_lines[1] == "var foo"
+            assert output_lines[2] == "var bar"
+            assert output_lines[4] == "var: oof"
+            assert output_lines[5] == "var: rab"
+        else:
+            assert not output_lines
 
 
 def test_multi_line_shell_command(tmpdir):
@@ -227,16 +220,13 @@ def test_multi_line_shell_command(tmpdir):
              push_env(**environment), \
              CaptureOutput() as capturer:
             ci_driver(step)
-            output = capturer.get_text()
+            output_lines = capturer.get_lines()
 
-        print(output)
-
-        expected_output = "\n".join([
-            "var foo",
-            "var bar"
-        ]) if step == 'install' else ""
-
-        assert output == expected_output
+        if step == 'install':
+            assert output_lines[3] == "var foo"
+            assert output_lines[4] == "var bar"
+        else:
+            assert not output_lines
 
 
 def _expand_environment_vars_test(command, posix_shell, expected):
@@ -348,14 +338,10 @@ def test_environment_persist(tmpdir):
             CaptureOutput() as capturer:
         ci_driver("before_install")
         ci_driver("install")
-        output = capturer.get_text()
+        output_lines = capturer.get_lines()
 
-    expected_output = "\n".join([
-        "1 [hello] [under world] []",
-        "2 [hello] [beautiful world] []"
-    ])
-
-    assert output == expected_output
+    assert output_lines[1] == "1 [hello] [under world] []"
+    assert output_lines[3] == "2 [hello] [beautiful world] []"
 
 
 def test_within_environment_expansion(tmpdir):
@@ -387,13 +373,9 @@ def test_within_environment_expansion(tmpdir):
     with push_dir(str(tmpdir)), push_env(**environment), \
             CaptureOutput() as capturer:
         ci_driver("before_install")
-        output = capturer.get_text()
+        output_lines = capturer.get_lines()
 
-    expected_output = "\n".join([
-        "[hello world of \"wonders\"]",
-        "[\\the\\thing]",
-        "[C:\\path\\to\\the\\thing]",
-        "[C:\\path\\to\\the\\very\\real\\thing]",
-    ])
-
-    assert output == expected_output
+    assert output_lines[1] == "[hello world of \"wonders\"]"
+    assert output_lines[3] == "[\\the\\thing]"
+    assert output_lines[5] == "[C:\\path\\to\\the\\thing]"
+    assert output_lines[7] == "[C:\\path\\to\\the\\very\\real\\thing]"
