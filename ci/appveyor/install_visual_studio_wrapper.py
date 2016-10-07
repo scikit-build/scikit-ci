@@ -27,6 +27,8 @@ LOCAL_PATH_DEFAULT = \
 def install(local_path=LOCAL_PATH_DEFAULT):
     """Download ``run_with_env.cmd`` and copy it to ``local_path``"""
 
+    print("Downloading into %s" % local_path)
+
     remote_script = urlopen(SCRIPT_URL)
     with open(local_path, "wb") as local_script:
         shutil.copyfileobj(remote_script, local_script)
