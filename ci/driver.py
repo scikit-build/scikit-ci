@@ -78,7 +78,8 @@ class Driver(object):
         kwds["env"] = kwds.get("env", self.env)
 
         if "COMSPEC" in os.environ:
-            cmd = ["cmd.exe", "/E:ON", "/V:ON", "/C", "{}".format(args[0])]
+            cmd = ["cmd.exe", "/E:ON", "/V:ON", "/C"]
+            cmd += shlex.split(args[0])
 
             # Format the list of arguments appropriately for display. When
             # formatting a command and its arguments, the user should be able
@@ -88,6 +89,9 @@ class Driver(object):
             # Currently, the only formatting is naively surrounding each
             # argument with quotation marks.
             cmd_for_display = ' '.join("\"{}\"".format(arg) for arg in cmd)
+            # XXX Hack to workaround missing
+            #     double quotes in run-with-visual-studio.cmd
+            cmd_for_display += "\""
             self.log("[scikit-ci] Executing: %s" % cmd_for_display)
 
             args = [cmd]
