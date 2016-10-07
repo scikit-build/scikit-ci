@@ -2,6 +2,7 @@
 import json
 import os
 import os.path
+import platform
 import ruamel.yaml
 import shlex
 import subprocess
@@ -75,7 +76,25 @@ class Driver(object):
 
     def check_call(self, *args, **kwds):
         kwds["env"] = kwds.get("env", self.env)
-        self.log("[scikit-ci] Executing: %s" % args)
+
+        if "COMSPEC" in os.environ:
+            cmd = ["cmd.exe", "/E:ON", "/V:ON", "/C", "{}".format(args[0])]
+
+            # Format the list of arguments appropriately for display. When
+            # formatting a command and its arguments, the user should be able
+            # to execute the command by copying and pasting the output directly
+            # into a shell.
+            #
+            # Currently, the only formatting is naively surrounding each
+            # argument with quotation marks.
+            cmd_for_display = ' '.join("\"{}\"".format(arg) for arg in cmd)
+            self.log("[scikit-ci] Executing: %s" % cmd_for_display)
+
+            args = [cmd]
+
+        else:
+            kwds["shell"] = True
+            self.log("[scikit-ci] Executing: %s" % args[0])
         return subprocess.check_call(*args, **kwds)
 
     def env_context(self, env_file="env.json"):
@@ -180,8 +199,7 @@ class Driver(object):
         for cmd in commands:
             cmd = self.expand_environment_vars(
                 cmd, self.env, posix_shell=posix_shell)
-            self.check_call(
-                cmd.replace("\\\\", "\\\\\\\\"), env=self.env, shell=True)
+            self.check_call(cmd.replace("\\\\", "\\\\\\\\"), env=self.env)
 
 
 def main(stage):
