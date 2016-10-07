@@ -367,7 +367,7 @@ def test_within_environment_expansion(tmpdir):
             FOO: hello
             BAR: $<WHAT>
           commands:
-            - echo "[$<FOO>] [$<BAR>]"
+            - echo "[$<FOO> $<BAR> $<STRING>]"
         """
     ))
     service = 'circle'
@@ -376,12 +376,15 @@ def test_within_environment_expansion(tmpdir):
     environment[SERVICES_ENV_VAR[service]] = "true"
 
     environment["WHAT"] = "world"
+    environment["STRING"] = "of \"wonders\""
 
     with push_dir(str(tmpdir)), push_env(**environment), \
             CaptureOutput() as capturer:
         ci_driver("before_install")
         output = capturer.get_text()
 
-    expected_output = "[hello] [world]"
+    expected_output = "\n".join([
+        "[hello world of \"wonders\"]",
+    ])
 
     assert output == expected_output
