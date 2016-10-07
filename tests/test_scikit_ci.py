@@ -368,6 +368,7 @@ def test_within_environment_expansion(tmpdir):
             BAR: $<WHAT>
           commands:
             - echo "[$<FOO> $<BAR> $<STRING>]"
+            - echo "[\\the\\thing]"
         """
     ))
     service = 'circle'
@@ -385,6 +386,7 @@ def test_within_environment_expansion(tmpdir):
 
     expected_output = "\n".join([
         "[hello world of \"wonders\"]",
+        "[\\the\\thing]",
     ])
 
     assert output == expected_output

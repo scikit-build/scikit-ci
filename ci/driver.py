@@ -172,7 +172,8 @@ class Driver(object):
         for cmd in commands:
             cmd = self.expand_environment_vars(
                 cmd, self.env, posix_shell=posix_shell)
-            self.check_call(cmd, env=self.env, shell=True)
+            self.check_call(
+                cmd.replace("\\\\", "\\\\\\\\"), env=self.env, shell=True)
 
 
 def main(stage):
