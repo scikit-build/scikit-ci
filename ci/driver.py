@@ -165,8 +165,13 @@ class Driver(object):
         environment, commands = self.parse_config(
             SCIKIT_CI_CONFIG, stage_name, service_name)
 
-        self.env.update(environment)
+        # Unescape environment variable
+        for name, value in environment.items():
+            for old, new in [("\\\\", "\\")]:
+                value = value.replace(old, new)
+            environment[name] = value
 
+        self.env.update(environment)
 
         posix_shell = SERVICES_SHELL_CONFIG['{}-{}'.format(
             service_name, utils.current_operating_system(service_name))]

@@ -366,10 +366,12 @@ def test_within_environment_expansion(tmpdir):
           environment:
             FOO: hello
             BAR: $<WHAT>
+            REAL_DIR: $<VERY_DIR>\\real
           commands:
             - echo "[$<FOO> $<BAR> $<STRING>]"
             - echo "[\\the\\thing]"
             - echo "[$<FOO_DIR>\\the\\thing]"
+            - echo "[$<FOO_DIR>\\the$<REAL_DIR>\\thing]"
         """
     ))
     service = 'circle'
@@ -380,6 +382,7 @@ def test_within_environment_expansion(tmpdir):
     environment["WHAT"] = "world"
     environment["STRING"] = "of \"wonders\""
     environment["FOO_DIR"] = "C:\\path\\to"
+    environment["VERY_DIR"] = "\\very"
 
     with push_dir(str(tmpdir)), push_env(**environment), \
             CaptureOutput() as capturer:
@@ -390,6 +393,7 @@ def test_within_environment_expansion(tmpdir):
         "[hello world of \"wonders\"]",
         "[\\the\\thing]",
         "[C:\\path\\to\\the\\thing]",
+        "[C:\\path\\to\\the\\very\\real\\thing]",
     ])
 
     assert output == expected_output
