@@ -75,6 +75,7 @@ class Driver(object):
 
     def check_call(self, *args, **kwds):
         kwds["env"] = kwds.get("env", self.env)
+        self.log("[scikit-ci] Executing: %s" % args)
         return subprocess.check_call(*args, **kwds)
 
     def env_context(self, env_file="env.json"):

@@ -12,7 +12,8 @@ import sys
 
 
 def _log(*args):
-    print(" ".join(args))
+    script_name = os.path.basename(__file__)
+    print("[appveyor:%s] " % script_name + " ".join(args))
     sys.stdout.flush()
 
 

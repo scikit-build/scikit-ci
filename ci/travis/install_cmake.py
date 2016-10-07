@@ -7,6 +7,7 @@ Usage::
 
 """
 
+import os
 import platform
 import sys
 
@@ -16,7 +17,8 @@ DEFAULT_CMAKE_VERSION = "3.5.0"
 
 
 def _log(*args):
-    print(" ".join(args))
+    script_name = os.path.basename(__file__)
+    print("[travis:%s] " % script_name + " ".join(args))
     sys.stdout.flush()
 
 

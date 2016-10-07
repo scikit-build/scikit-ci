@@ -21,7 +21,8 @@ DEFAULT_CMAKE_VERSION = "3.5.2"
 
 
 def _log(*args):
-    print(" ".join(args))
+    script_name = os.path.basename(__file__)
+    print("[appveyor:%s] " % script_name + " ".join(args))
     sys.stdout.flush()
 
 
@@ -39,25 +40,28 @@ def install(cmake_version=DEFAULT_CMAKE_VERSION):
     cmake_version_major = cmake_version.split(".")[0]
     cmake_version_minor = cmake_version.split(".")[1]
 
-    _log("Downloading CMake", cmake_version)
-    remote_file = urlopen(
-        "https://cmake.org/files/v{}.{}/cmake-{}-win32-x86.zip".format(
-            cmake_version_major, cmake_version_minor, cmake_version))
+    cmake_package = "cmake-{}-win32-x86.zip".format(cmake_version)
 
-    with open("C:\\cmake.zip", "wb") as local_file:
+    _log("Downloading", cmake_package)
+    remote_file = urlopen(
+        "https://cmake.org/files/v{}.{}/{}".format(
+            cmake_version_major, cmake_version_minor, cmake_package))
+
+    with open("C:\\%s" % cmake_package, "wb") as local_file:
         shutil.copyfileobj(remote_file, local_file)
 
-    _log("Unpacking CMake")
-
+    cmake_directory = "C:\\cmake"
+    _log("Making directory", cmake_directory)
     try:
-        os.mkdir("C:\\cmake")
+        os.mkdir(cmake_directory)
     except OSError:
         pass
 
-    with zipfile.ZipFile("C:\\cmake.zip") as local_zip:
-        local_zip.extractall("C:\\cmake")
+    _log("Unpacking", cmake_package)
+    with zipfile.ZipFile("C:\\%s" % cmake_package) as local_zip:
+        local_zip.extractall(cmake_directory)
 
-    _env_prepend("PATH", "C:\\cmake\bin")
+    _env_prepend("PATH", "%s\bin" % cmake_directory)
 
 
 if __name__ == '__main__':

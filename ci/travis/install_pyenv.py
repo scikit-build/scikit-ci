@@ -14,17 +14,26 @@ from subprocess import check_call
 
 
 def _log(*args):
-    print(" ".join(args))
+    script_name = os.path.basename(__file__)
+    print("[travis:%s] " % script_name + " ".join(args))
     sys.stdout.flush()
 
 
 def install(py_version):
     """Download and install ``pyenv``."""
 
+    _log("Updating pyenv using brew")
     check_call(
         "\n".join((
             "brew update",
-            "brew outdated pyenv || brew upgrade pyenv",
+            "brew outdated pyenv || brew upgrade pyenv"
+        )),
+        shell=True
+    )
+
+    _log("Checking that requested python version", py_version, "works")
+    check_call(
+        "\n".join((
             "eval \"$( pyenv init - )\"",
             "pyenv install " + py_version,
             "pyenv local " + py_version,
