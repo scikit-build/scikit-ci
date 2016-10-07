@@ -108,8 +108,14 @@ class Driver(object):
         for token in tokenizer:
             expand = not (posix_shell and token[0] == "'" and token[-1] == "'")
             if expand:
-                for name, value in environments.items():
-                    token = token.replace("$<%s>" % name, value)
+
+                def expand_token(_token):
+                    for name, value in environments.items():
+                        _token = _token.replace("$<%s>" % name, value.replace("\"", "\\\""))
+                    return _token
+
+                token = expand_token(token)
+                token = expand_token(token)
 
             if tokenizer.lineno > lineno:
                 expanded_lines.append(" ".join(expanded_tokens))
@@ -159,9 +165,6 @@ class Driver(object):
 
         self.env.update(environment)
 
-        for name, value in self.env.items():
-            self.env[name] = self.expand_environment_vars(
-                value, self.env, posix_shell=False)
 
         posix_shell = SERVICES_SHELL_CONFIG['{}-{}'.format(
             service_name, utils.current_operating_system(service_name))]
