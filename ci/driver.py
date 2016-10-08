@@ -98,8 +98,22 @@ class Driver(object):
         return DriverContext(self, env_file)
 
     @staticmethod
-    def expand_environment_vars(command, environments, posix_shell=True):
-        """ Return an updated ``command`` string where all occurrences of
+    def expand_environment_vars(text, environments):
+        """Return an updated ``command`` string where all occurrences of
+        ``$<EnvironmentVarName>`` (with a corresponding env variable set) have
+        been replaced.
+        """
+
+        for name, value in environments.items():
+            text = text.replace(
+                "$<%s>" % name,
+                value.replace("\\", "\\\\").replace("\"", "\\\""))
+
+        return text
+
+    @staticmethod
+    def expand_command(command, environments, posix_shell=True):
+        """Return an updated ``command`` string where all occurrences of
         ``$<EnvironmentVarName>`` (with a corresponding env variable set) have
         been replaced.
 
@@ -125,16 +139,8 @@ class Driver(object):
         for token in tokenizer:
             expand = not (posix_shell and token[0] == "'" and token[-1] == "'")
             if expand:
-
-                def expand_token(_token):
-                    for name, value in environments.items():
-                        _token = _token.replace(
-                            "$<%s>" % name,
-                            value.replace("\\", "\\\\").replace("\"", "\\\""))
-                    return _token
-
-                token = expand_token(token)
-                token = expand_token(token)
+                token = Driver.expand_environment_vars(token, environments)
+                token = Driver.expand_environment_vars(token, environments)
 
             if tokenizer.lineno > lineno:
                 expanded_lines.append(" ".join(expanded_tokens))
@@ -194,7 +200,8 @@ class Driver(object):
             service_name, utils.current_operating_system(service_name))]
 
         for cmd in commands:
-            cmd = self.expand_environment_vars(
+            # Expand environment variables used within commands
+            cmd = self.expand_command(
                 cmd, self.env, posix_shell=posix_shell)
             self.check_call(cmd.replace("\\\\", "\\\\\\\\"), env=self.env)
 
