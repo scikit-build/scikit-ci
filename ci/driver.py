@@ -226,5 +226,22 @@ def execute_step(step):
     with d.env_context():
         d.execute_commands(step)
 
+
+def main():
+    """The main entry point to ``ci.py``.
+
+    This is installed as the script entry point.
+    """
+
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("step", type=str, choices=STEPS,
+                        help="name of the step to execute")
+    args = parser.parse_args()
+
+    execute_step(args.step)
+
+
 if __name__ == "__main__":
-    execute_step(sys.argv[1])
+    main()
