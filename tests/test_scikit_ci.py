@@ -379,3 +379,42 @@ def test_within_environment_expansion(tmpdir):
     assert output_lines[3] == "[\\the\\thing]"
     assert output_lines[5] == "[C:\\path\\to\\the\\thing]"
     assert output_lines[7] == "[C:\\path\\to\\the\\very\\real\\thing]"
+
+
+def test_expand_environment(tmpdir):
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "0.5.0"
+        before_install:
+          environment:
+            SYMBOLS: b;$<SYMBOLS>
+          circle:
+            environment:
+              SYMBOLS: a;$<SYMBOLS>
+          commands:
+            - echo "before_install [$<SYMBOLS>]"
+        install:
+          environment:
+            SYMBOLS: 9;$<SYMBOLS>
+          circle:
+            environment:
+              SYMBOLS: 8;$<SYMBOLS>
+          commands:
+            - echo "install [$<SYMBOLS>]"
+        """
+    ))
+    service = 'circle'
+
+    environment = dict(os.environ)
+    environment[SERVICES_ENV_VAR[service]] = "true"
+
+    environment["SYMBOLS"] = "c;d;e"
+
+    with push_dir(str(tmpdir)), push_env(**environment), \
+         CaptureOutput() as capturer:
+        ci_driver("before_install")
+        ci_driver("install")
+        output_lines = capturer.get_lines()
+
+    assert output_lines[1] == "before_install [a;b;c;d;e]"
+    assert output_lines[3] == "install [8;9;a;b;c;d;e]"

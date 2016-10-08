@@ -140,7 +140,6 @@ class Driver(object):
             expand = not (posix_shell and token[0] == "'" and token[-1] == "'")
             if expand:
                 token = Driver.expand_environment_vars(token, environments)
-                token = Driver.expand_environment_vars(token, environments)
 
             if tokenizer.lineno > lineno:
                 expanded_lines.append(" ".join(expanded_tokens))
@@ -175,8 +174,12 @@ class Driver(object):
                     operating_system = os.environ[SERVICES[service_name]]
                     system = system.get(operating_system, {})
 
-                # if any, append service specific environment and commands
-                environment.update(system.get("environment", {}))
+                # if any, set service specific environment
+                system_environment = system.get("environment", {})
+                for name, value in system_environment.items():
+                    environment[name] = Driver.expand_environment_vars(
+                        value, environment)
+                # ... and append commands
                 commands += system.get("commands", [])
 
         return environment, commands
@@ -188,13 +191,19 @@ class Driver(object):
         environment, commands = self.parse_config(
             SCIKIT_CI_CONFIG, stage_name, service_name)
 
-        # Unescape environment variable
+        # Expand stage environment variables
         for name, value in environment.items():
+            environment[name] = self.expand_environment_vars(value, self.env)
+
+        # Merge stage environment variables with global environment
+        self.env.update(environment)
+
+        # Unescape environment variables
+        for name in environment:
+            value = self.env[name]
             for old, new in [("\\\\", "\\")]:
                 value = value.replace(old, new)
-            environment[name] = value
-
-        self.env.update(environment)
+            self.env[name] = value
 
         posix_shell = SERVICES_SHELL_CONFIG['{}-{}'.format(
             service_name, utils.current_operating_system(service_name))]
