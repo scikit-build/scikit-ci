@@ -22,3 +22,18 @@ SERVICES_ENV_VAR = {
     "circle": "CIRCLECI",
     "travis": "TRAVIS",
 }
+
+"""Name of the CI steps.
+
+These are the scikit-ci steps to execute. They are expected to
+be mapped to the step recognized by continuous integration
+services like Appveyor, CircleCI or TravisCI.
+"""
+STEPS = [
+    "before_install",
+    "install",
+    "before_build",
+    "build",
+    "test",
+    "after_test"
+]

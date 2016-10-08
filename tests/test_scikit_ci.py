@@ -11,7 +11,7 @@ from capturer import CaptureOutput
 from . import push_dir, push_env
 from ci.constants import SERVICES_ENV_VAR
 from ci.driver import Driver
-from ci.driver import main as ci_driver
+from ci.driver import execute_step
 
 
 def scikit_steps(tmpdir, service):
@@ -130,7 +130,7 @@ def test_driver(service, tmpdir):
         with push_dir(str(tmpdir)),\
              push_env(**environment), \
              CaptureOutput() as capturer:
-            ci_driver(step)
+            execute_step(step)
             output_lines = capturer.get_lines()
 
         second_line = "%s / %s" % (step, service)
@@ -175,7 +175,7 @@ def test_shell_command(tmpdir):
         with push_dir(str(tmpdir)), \
              push_env(**environment), \
              CaptureOutput() as capturer:
-            ci_driver(step)
+            execute_step(step)
             output_lines = capturer.get_lines()
 
         if step == 'install':
@@ -220,7 +220,7 @@ def test_multi_line_shell_command(tmpdir):
         with push_dir(str(tmpdir)), \
              push_env(**environment), \
              CaptureOutput() as capturer:
-            ci_driver(step)
+            execute_step(step)
             output_lines = capturer.get_lines()
 
         if step == 'install':
@@ -306,7 +306,7 @@ def test_not_all_operating_system(tmpdir):
     environment["TRAVIS_OS_NAME"] = "linux"
 
     with push_dir(str(tmpdir)), push_env(**environment):
-        ci_driver("install")
+        execute_step("install")
 
 
 def test_environment_persist(tmpdir):
@@ -337,8 +337,8 @@ def test_environment_persist(tmpdir):
 
     with push_dir(str(tmpdir)), push_env(**environment), \
             CaptureOutput() as capturer:
-        ci_driver("before_install")
-        ci_driver("install")
+        execute_step("before_install")
+        execute_step("install")
         output_lines = capturer.get_lines()
 
     assert output_lines[1] == "1 [hello] [under world] []"
@@ -373,7 +373,7 @@ def test_within_environment_expansion(tmpdir):
 
     with push_dir(str(tmpdir)), push_env(**environment), \
             CaptureOutput() as capturer:
-        ci_driver("before_install")
+        execute_step("before_install")
         output_lines = capturer.get_lines()
 
     assert output_lines[1] == "[hello world of \"wonders\"]"
@@ -413,8 +413,8 @@ def test_expand_environment(tmpdir):
 
     with push_dir(str(tmpdir)), push_env(**environment), \
             CaptureOutput() as capturer:
-        ci_driver("before_install")
-        ci_driver("install")
+        execute_step("before_install")
+        execute_step("install")
         output_lines = capturer.get_lines()
 
     assert output_lines[1] == "before_install [a;b;c;d;e]"

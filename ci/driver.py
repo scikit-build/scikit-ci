@@ -7,7 +7,7 @@ import shlex
 import subprocess
 import sys
 
-from constants import SCIKIT_CI_CONFIG, SERVICES
+from constants import SCIKIT_CI_CONFIG, SERVICES, STEPS
 
 try:
     from . import utils
@@ -214,25 +214,17 @@ class Driver(object):
             self.check_call(cmd.replace("\\\\", "\\\\\\\\"), env=self.env)
 
 
-def main(stage):
-    stages = [
-        "before_install",
-        "install",
-        "before_build",
-        "build",
-        "test",
-        "after_test"
-    ]
+def execute_step(step):
 
     if not os.path.exists(SCIKIT_CI_CONFIG):
         raise Exception("Couldn't find %s" % SCIKIT_CI_CONFIG)
 
-    if stage not in stages:
-        raise KeyError("invalid stage: {}".format(stage))
+    if step not in STEPS:
+        raise KeyError("invalid stage: {}".format(step))
 
     d = Driver()
     with d.env_context():
-        d.execute_commands(stage)
+        d.execute_commands(step)
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    execute_step(sys.argv[1])
