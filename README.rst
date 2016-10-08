@@ -2,8 +2,7 @@
 scikit-ci
 ===============================
 
-A set of scripts facilitating the building of python extensions
-using continuous integration services.
+scikit-ci.yml: Centralized CI configuration for Python extensions.
 
 Supported services are AppVeyor, CircleCI and TravisCI.
 
