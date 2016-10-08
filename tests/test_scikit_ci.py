@@ -57,14 +57,14 @@ def scikit_steps(tmpdir, service):
 
 def _generate_scikit_yml_content():
     template_step = (
-        """
+        r"""
         {what}:
 
           environment:
             WHAT: {what}
           commands:
             - python -c 'import os; print("%s" % os.environ["WHAT"])'
-            - python -c "import os; print('expand:%s' % \\"$<WHAT>\\")"
+            - python -c "import os; print('expand:%s' % \"$<WHAT>\")"
             - python -c 'import os; print("expand-2:%s" % "$<WHAT>")'
             - python --version
 
@@ -145,23 +145,23 @@ def test_shell_command(tmpdir, capfd):
 
     if platform.system().lower() == "windows":
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
-            """
+            r"""
             schema_version: "0.5.0"
             install:
               commands:
                 - for %G in (foo bar) do python -c "print('var %G')"
-                - "for %G in oof rab; do python -c \\"print('var: %G')\\"; done"
+                - "for %G in oof rab; do python -c \"print('var: %G')\"; done"
             """
         ))
         service = 'appveyor'
     else:
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
-            """
+            r"""
             schema_version: "0.5.0"
             install:
               commands:
                 - for var in foo bar; do python -c "print('var $var')"; done
-                - "for var in oof rab; do python -c \\"print('var: $var')\\"; done"
+                - "for var in oof rab; do python -c \"print('var: $var')\"; done"
             """  # noqa: E501
         ))
         service = 'circle'
@@ -184,7 +184,7 @@ def test_shell_command(tmpdir, capfd):
 def test_multi_line_shell_command(tmpdir, capfd):
     if platform.system().lower() == "windows":
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
-            """
+            r"""
             schema_version: "0.5.0"
             install:
               commands:
@@ -197,7 +197,7 @@ def test_multi_line_shell_command(tmpdir, capfd):
 
     else:
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
-            """
+            r"""
             schema_version: "0.5.0"
             install:
               commands:
