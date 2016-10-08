@@ -139,7 +139,8 @@ def test_driver(service, tmpdir):
 
         assert output_lines[1] == "%s" % step
         assert output_lines[3] == "expand: %s" % step
-        assert output_lines[5] == "expand-2:%s" % (step if service == 'appveyor' else "$<WHAT>")
+        assert output_lines[5] == "expand-2:%s" % (
+            step if service == 'appveyor' else "$<WHAT>")
         assert output_lines[7] == "Python %s" % sys.version.split()[0]
         assert output_lines[9] == second_line
 
@@ -411,7 +412,7 @@ def test_expand_environment(tmpdir):
     environment["SYMBOLS"] = "c;d;e"
 
     with push_dir(str(tmpdir)), push_env(**environment), \
-         CaptureOutput() as capturer:
+            CaptureOutput() as capturer:
         ci_driver("before_install")
         ci_driver("install")
         output_lines = capturer.get_lines()

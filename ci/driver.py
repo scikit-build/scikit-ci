@@ -2,7 +2,6 @@
 import json
 import os
 import os.path
-import platform
 import ruamel.yaml
 import shlex
 import subprocess
