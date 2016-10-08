@@ -2,6 +2,10 @@
 scikit-ci
 ===============================
 
+.. image:: https://readthedocs.org/projects/scikit-ci/badge/?version=latest
+    :target: http://scikit-ci.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
 scikit-ci enables a centralized and simpler CI configuration for Python
 extensions.
 
