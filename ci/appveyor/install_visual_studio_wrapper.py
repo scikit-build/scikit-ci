@@ -40,4 +40,4 @@ def install(local_path=LOCAL_PATH_DEFAULT):
         shutil.copyfileobj(remote_script, local_script)
 
 if __name__ == '__main__':
-    install(sys.argv[1])
+    install(sys.argv[1] if len(sys.argv) > 1 else LOCAL_PATH_DEFAULT)
