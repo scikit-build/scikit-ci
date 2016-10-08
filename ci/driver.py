@@ -2,14 +2,27 @@
 import json
 import os
 import os.path
-import struct
+import platform
+import ruamel.yaml
+import shlex
 import subprocess
 import sys
 
+from constants import SCIKIT_CI_CONFIG, SERVICES
+
 try:
-    from urllib.request import urlopen
-except ImportError:
-    from urllib2 import urlopen
+    from . import utils
+except (SystemError, ValueError):
+    import utils
+
+POSIX_SHELL = True
+
+SERVICES_SHELL_CONFIG = {
+    'appveyor-None': not POSIX_SHELL,
+    'circle-None': POSIX_SHELL,
+    'travis-linux': POSIX_SHELL,
+    'travis-osx': POSIX_SHELL,
+}
 
 
 class DriverContext(object):
@@ -33,12 +46,10 @@ class Driver(object):
         self.env = None
         self._env_file = None
 
-    def log(self, *s):
+    @staticmethod
+    def log(*s):
         print(" ".join(s))
         sys.stdout.flush()
-
-    def urlopen(self, *args, **kwargs):
-        return urlopen(*args, **kwargs)
 
     def load_env(self, env_file="env.json"):
         if self.env is not None:
@@ -58,86 +69,171 @@ class Driver(object):
             env_file = self._env_file
 
         with open(env_file, "w") as env:
-            json.dump(self.env, env)
+            json.dump(self.env, env, indent=4)
 
     def unload_env(self):
         self.env = None
 
-    def env_prepend(self, key, *values):
-        self.env[key] = os.pathsep.join(
-            list(values) + self.env.get(key, "").split(os.pathsep))
-
     def check_call(self, *args, **kwds):
         kwds["env"] = kwds.get("env", self.env)
+
+        if "COMSPEC" in os.environ:
+            cmd_exe = ["cmd.exe", "/E:ON", "/V:ON", "/C"]
+
+            # Format the list of arguments appropriately for display. When
+            # formatting a command and its arguments, the user should be able
+            # to execute the command by copying and pasting the output directly
+            # into a shell.
+            self.log("[scikit-ci] Executing: %s \"%s\"" % (
+                ' '.join(cmd_exe), args[0]))
+
+            args = [cmd_exe + [args[0]]]
+
+        else:
+            kwds["shell"] = True
+            self.log("[scikit-ci] Executing: %s" % args[0])
         return subprocess.check_call(*args, **kwds)
 
     def env_context(self, env_file="env.json"):
         return DriverContext(self, env_file)
 
-    def drive_install(self):
-        self.log("Python Version:")
-        self.log(sys.version)
-        self.log("    {}-bit".format(struct.calcsize("P") * 8))
+    @staticmethod
+    def expand_environment_vars(text, environments):
+        """Return an updated ``command`` string where all occurrences of
+        ``$<EnvironmentVarName>`` (with a corresponding env variable set) have
+        been replaced.
+        """
 
-        self.check_call([
-            "python", "-m", "pip",
-            "install", "--disable-pip-version-check",
-            "--upgrade", "pip"
-        ])
+        for name, value in environments.items():
+            text = text.replace(
+                "$<%s>" % name,
+                value.replace("\\", "\\\\").replace("\"", "\\\""))
 
-        self.check_call([
-            "python", "-m", "pip", "install", "-r", "requirements.txt"])
+        return text
 
-        self.check_call([
-            "python", "-m", "pip", "install", "-r", "requirements-dev.txt"])
+    @staticmethod
+    def expand_command(command, environments, posix_shell=True):
+        """Return an updated ``command`` string where all occurrences of
+        ``$<EnvironmentVarName>`` (with a corresponding env variable set) have
+        been replaced.
 
-    def drive_build(self):
-        self.check_call(["python", "setup.py", "build"])
+        If ``posix_shell`` is True, only occurrences of
+        ``$<EnvironmentVarName>`` in string starting with double quotes will
+        be replaced.
 
-    def drive_style(self):
-        self.check_call(["python", "-m", "flake8", "-v"])
+        See
+        https://www.gnu.org/software/bash/manual/html_node/Double-Quotes.html
+        and
+        https://www.gnu.org/software/bash/manual/html_node/Single-Quotes.html
+        """
+        # Strip line continuation characters. There are not required
+        # successfully evaluate the expression and were confusion shlex.
+        if posix_shell:
+            command = command.replace("\\\n", "")
 
-    def drive_test(self):
-        extra_test_args = self.env.get("EXTRA_TEST_ARGS", "")
-        addopts = []
-        if extra_test_args:
-            addopts.extend(["--addopts", extra_test_args])
+        tokenizer = shlex.shlex(command, posix=False)
+        tokenizer.whitespace_split = True
+        expanded_lines = []
+        expanded_tokens = []
+        lineno = 1
+        for token in tokenizer:
+            expand = not (posix_shell and token[0] == "'" and token[-1] == "'")
+            if expand:
+                token = Driver.expand_environment_vars(token, environments)
 
-        self.check_call(
-            ["python", "setup.py", "test"] + addopts)
+            if tokenizer.lineno > lineno:
+                expanded_lines.append(" ".join(expanded_tokens))
+                expanded_tokens = []
 
-    def drive_after_test(self):
-        self.check_call(["python", "setup.py", "bdist_wheel"])
+            expanded_tokens.append(token)
+            lineno = tokenizer.lineno
+
+        if expanded_tokens:
+            expanded_lines.append(" ".join(expanded_tokens))
+
+        return "\n".join(expanded_lines)
+
+    @staticmethod
+    def parse_config(config_file, stage_name, service_name):
+        with open(config_file) as input_stream:
+            data = ruamel.yaml.load(input_stream, ruamel.yaml.RoundTripLoader)
+        commands = []
+        environment = {}
+        if stage_name in data:
+            stage = data[stage_name]
+
+            # common to all services
+            environment = stage.get("environment", {})
+            commands = stage.get("commands", [])
+
+            if service_name in stage:
+                system = stage[service_name]
+
+                # consider service offering multiple operating system support
+                if SERVICES[service_name]:
+                    operating_system = os.environ[SERVICES[service_name]]
+                    system = system.get(operating_system, {})
+
+                # if any, set service specific environment
+                system_environment = system.get("environment", {})
+                for name, value in system_environment.items():
+                    environment[name] = Driver.expand_environment_vars(
+                        value, environment)
+                # ... and append commands
+                commands += system.get("commands", [])
+
+        return environment, commands
+
+    def execute_commands(self, stage_name):
+
+        service_name = utils.current_service()
+
+        environment, commands = self.parse_config(
+            SCIKIT_CI_CONFIG, stage_name, service_name)
+
+        # Expand stage environment variables
+        for name, value in environment.items():
+            environment[name] = self.expand_environment_vars(value, self.env)
+
+        # Merge stage environment variables with global environment
+        self.env.update(environment)
+
+        # Unescape environment variables
+        for name in environment:
+            value = self.env[name]
+            for old, new in [("\\\\", "\\")]:
+                value = value.replace(old, new)
+            self.env[name] = value
+
+        posix_shell = SERVICES_SHELL_CONFIG['{}-{}'.format(
+            service_name, utils.current_operating_system(service_name))]
+
+        for cmd in commands:
+            # Expand environment variables used within commands
+            cmd = self.expand_command(
+                cmd, self.env, posix_shell=posix_shell)
+            self.check_call(cmd.replace("\\\\", "\\\\\\\\"), env=self.env)
+
+
+def main(stage):
+    stages = [
+        "before_install",
+        "install",
+        "before_build",
+        "build",
+        "test",
+        "after_test"
+    ]
+
+    if not os.path.exists(SCIKIT_CI_CONFIG):
+        raise Exception("Couldn't find %s" % SCIKIT_CI_CONFIG)
+
+    if stage not in stages:
+        raise KeyError("invalid stage: {}".format(stage))
+
+    d = Driver()
+    with d.env_context():
+        d.execute_commands(stage)
 
 if __name__ == "__main__":
-    from appveyor_driver import AppveyorDriver
-    from circle_driver import CircleDriver
-    from travis_driver import TravisDriver
-
-    driver_table = {
-        "appveyor": AppveyorDriver,
-        "circle": CircleDriver,
-        "travis": TravisDriver,
-    }
-
-    stage_table = {
-        "install": "drive_install",
-        "build": "drive_build",
-        "style": "drive_style",
-        "test": "drive_test",
-        "after_test": "drive_after_test",
-    }
-
-    class_key, stage_key = sys.argv[1:3]
-    try:
-        DriverClass = driver_table[class_key]
-    except KeyError:
-        raise KeyError("invalid driver implementation: {}".format(class_key))
-    try:
-        stage = stage_table[stage_key]
-    except KeyError:
-        raise KeyError("invalid stage: {}".format(stage_key))
-
-    d = DriverClass()
-    with d.env_context():
-        getattr(d, stage)()
+    main(sys.argv[1])

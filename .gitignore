@@ -1,0 +1,9 @@
+# This project
+env.json
+
+# Python
+*.py[cod]
+cache/
+.coverage
+coverage.xml
+htmlcov

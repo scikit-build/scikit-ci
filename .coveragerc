@@ -1,0 +1,11 @@
+[report]
+exclude_lines =
+    if __name__ == .__main__.:
+
+[run]
+branch = True
+include = ci/*.py
+omit = ci/install_cmake.py
+
+[xml]
+output = tests/coverage.xml
