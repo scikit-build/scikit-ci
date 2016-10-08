@@ -87,3 +87,13 @@ def push_env(**kwargs):
     os.environ.clear()
     for (saved_var, saved_value) in saved_env.items():
         os.environ[saved_var] = saved_value
+
+
+def captured_lines(cap):
+    """Given a ``capsys`` or ``capfd`` pytest fixture, return
+     a tuple of the form ``(out_lines, error_lines)``.
+
+    See http://doc.pytest.org/en/latest/capture.html
+    """
+    out, err = cap.readouterr()
+    return out.split("\n"), err.split("\n")

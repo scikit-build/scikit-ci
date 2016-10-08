@@ -6,9 +6,7 @@ import subprocess
 import sys
 import textwrap
 
-from capturer import CaptureOutput
-
-from . import push_dir, push_env
+from . import captured_lines, push_dir, push_env
 from ci.constants import SERVICES_ENV_VAR
 from ci.driver import Driver
 from ci.driver import execute_step
@@ -119,7 +117,7 @@ def _generate_scikit_yml_content():
 
 @pytest.mark.parametrize("service",
                          ['appveyor', 'circle', 'travis'])
-def test_driver(service, tmpdir):
+def test_driver(service, tmpdir, capfd):
 
     tmpdir.join('scikit-ci.yml').write(
         _generate_scikit_yml_content()
@@ -127,11 +125,9 @@ def test_driver(service, tmpdir):
 
     for step, system, environment in scikit_steps(tmpdir, service):
 
-        with push_dir(str(tmpdir)),\
-             push_env(**environment), \
-             CaptureOutput() as capturer:
+        with push_dir(str(tmpdir)), push_env(**environment):
             execute_step(step)
-            output_lines = capturer.get_lines()
+            output_lines, error_lines = captured_lines(capfd)
 
         second_line = "%s / %s" % (step, service)
         if system:
@@ -141,11 +137,11 @@ def test_driver(service, tmpdir):
         assert output_lines[3] == "expand: %s" % step
         assert output_lines[5] == "expand-2:%s" % (
             step if service == 'appveyor' else "$<WHAT>")
-        assert output_lines[7] == "Python %s" % sys.version.split()[0]
-        assert output_lines[9] == second_line
+        assert error_lines[0] == "Python %s" % sys.version.split()[0]
+        assert output_lines[8] == second_line
 
 
-def test_shell_command(tmpdir):
+def test_shell_command(tmpdir, capfd):
 
     if platform.system().lower() == "windows":
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
@@ -172,11 +168,9 @@ def test_shell_command(tmpdir):
 
     for step, system, environment in scikit_steps(tmpdir, service):
 
-        with push_dir(str(tmpdir)), \
-             push_env(**environment), \
-             CaptureOutput() as capturer:
+        with push_dir(str(tmpdir)), push_env(**environment):
             execute_step(step)
-            output_lines = capturer.get_lines()
+            output_lines, _ = captured_lines(capfd)
 
         if step == 'install':
             assert output_lines[1] == "var foo"
@@ -184,10 +178,10 @@ def test_shell_command(tmpdir):
             assert output_lines[4] == "var: oof"
             assert output_lines[5] == "var: rab"
         else:
-            assert not output_lines
+            assert output_lines[0] == ''
 
 
-def test_multi_line_shell_command(tmpdir):
+def test_multi_line_shell_command(tmpdir, capfd):
     if platform.system().lower() == "windows":
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
             """
@@ -217,17 +211,15 @@ def test_multi_line_shell_command(tmpdir):
 
     for step, system, environment in scikit_steps(tmpdir, service):
 
-        with push_dir(str(tmpdir)), \
-             push_env(**environment), \
-             CaptureOutput() as capturer:
+        with push_dir(str(tmpdir)), push_env(**environment):
             execute_step(step)
-            output_lines = capturer.get_lines()
+            output_lines, _ = captured_lines(capfd)
 
         if step == 'install':
             assert output_lines[3] == "var foo"
             assert output_lines[4] == "var bar"
         else:
-            assert not output_lines
+            assert output_lines[0] == ''
 
 
 def _expand_command_test(command, posix_shell, expected):
@@ -309,7 +301,7 @@ def test_not_all_operating_system(tmpdir):
         execute_step("install")
 
 
-def test_environment_persist(tmpdir):
+def test_environment_persist(tmpdir, capfd):
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
         schema_version: "0.5.0"
@@ -335,17 +327,16 @@ def test_environment_persist(tmpdir):
     environment = dict(os.environ)
     environment[SERVICES_ENV_VAR[service]] = "true"
 
-    with push_dir(str(tmpdir)), push_env(**environment), \
-            CaptureOutput() as capturer:
+    with push_dir(str(tmpdir)), push_env(**environment):
         execute_step("before_install")
         execute_step("install")
-        output_lines = capturer.get_lines()
+        output_lines, _ = captured_lines(capfd)
 
     assert output_lines[1] == "1 [hello] [under world] []"
     assert output_lines[3] == "2 [hello] [beautiful world] []"
 
 
-def test_within_environment_expansion(tmpdir):
+def test_within_environment_expansion(tmpdir, capfd):
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
         schema_version: "0.5.0"
@@ -371,10 +362,9 @@ def test_within_environment_expansion(tmpdir):
     environment["FOO_DIR"] = "C:\\path\\to"
     environment["VERY_DIR"] = "\\very"
 
-    with push_dir(str(tmpdir)), push_env(**environment), \
-            CaptureOutput() as capturer:
+    with push_dir(str(tmpdir)), push_env(**environment):
         execute_step("before_install")
-        output_lines = capturer.get_lines()
+        output_lines, _ = captured_lines(capfd)
 
     assert output_lines[1] == "[hello world of \"wonders\"]"
     assert output_lines[3] == "[\\the\\thing]"
@@ -382,7 +372,7 @@ def test_within_environment_expansion(tmpdir):
     assert output_lines[7] == "[C:\\path\\to\\the\\very\\real\\thing]"
 
 
-def test_expand_environment(tmpdir):
+def test_expand_environment(tmpdir, capfd):
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
         schema_version: "0.5.0"
@@ -411,11 +401,10 @@ def test_expand_environment(tmpdir):
 
     environment["SYMBOLS"] = "c;d;e"
 
-    with push_dir(str(tmpdir)), push_env(**environment), \
-            CaptureOutput() as capturer:
+    with push_dir(str(tmpdir)), push_env(**environment):
         execute_step("before_install")
         execute_step("install")
-        output_lines = capturer.get_lines()
+        output_lines, _ = captured_lines(capfd)
 
     assert output_lines[1] == "before_install [a;b;c;d;e]"
     assert output_lines[3] == "install [8;9;a;b;c;d;e]"
