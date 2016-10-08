@@ -26,8 +26,8 @@ setup(
 
     version='0.5.0',
 
-    author='Jean-Christophe Fillion-Robin and the scikit-build team',
-    author_email='jchris.fillion',
+    author='The scikit-build team',
+    author_email='scikit-build@googlegroups.com',
 
     url='https://github.com/scikit-build/scikit-ci',
 
