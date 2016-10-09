@@ -1,7 +1,10 @@
 
 import os
 
-from constants import SERVICES, SERVICES_ENV_VAR
+try:
+    from .constants import SERVICES, SERVICES_ENV_VAR
+except (SystemError, ValueError):
+    from constants import SERVICES, SERVICES_ENV_VAR
 
 
 def current_service():
@@ -9,9 +12,9 @@ def current_service():
         if os.environ.get(
                 SERVICES_ENV_VAR[service], 'false').lower() == 'true':
             return service
-    raise Exception(
-        "unknown service: None of the environment variables {} "
-        "is set to 'true'".format(", ".join(SERVICES_ENV_VAR.values()))
+    raise LookupError(
+        "unknown service: None of the environment variables {} are set "
+        "to 'true' or 'True'".format(", ".join(SERVICES_ENV_VAR.values()))
     )
 
 

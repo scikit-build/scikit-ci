@@ -6,21 +6,52 @@ import subprocess
 import sys
 import textwrap
 
-from capturer import CaptureOutput
+from . import captured_lines, display_captured_text, push_dir, push_env
+from ci.constants import SERVICES, SERVICES_ENV_VAR
+from ci.driver import Driver, execute_step
+from ci.utils import current_service, current_operating_system
 
-from . import push_dir, push_env
-from ci.constants import SERVICES_ENV_VAR
-from ci.driver import Driver
-from ci.driver import execute_step
+"""Indicate if the system has a Windows command line interpreter"""
+HAS_COMSPEC = "COMSPEC" in os.environ
+
+"""Version of the tested scikit-ci schema."""
+SCHEMA_VERSION = "0.5.0"
+
+
+def enable_service(service, environment=os.environ, operating_system=None):
+    """Ensure ``service`` is enabled.
+
+    For multi-os services, you are expected to set ``operating_system``.
+
+    Note that before enabling ``service``, the environment variables (including
+    the one specifying which OS is enabled) for all services are first removed
+    from the ``environment``.
+    """
+    for any_service in SERVICES:
+        if SERVICES_ENV_VAR[any_service] in environment:
+            del environment[SERVICES_ENV_VAR[any_service]]
+        if SERVICES[any_service]:
+            if SERVICES[any_service] in environment:
+                del environment[SERVICES[any_service]]
+    environment[SERVICES_ENV_VAR[service]] = "true"
+    if SERVICES[service]:
+        assert operating_system is not None
+        environment[SERVICES[service]] = operating_system
+
+
+@pytest.mark.parametrize("service", SERVICES.keys())
+def test_current_service(service):
+    with push_env():
+        operating_system = "linux" if SERVICES[service] else None
+        enable_service(service, operating_system=operating_system)
+        assert current_service() == service
+        assert current_operating_system(service) == operating_system
 
 
 def scikit_steps(tmpdir, service):
     """Given ``tmpdir`` and ``service``, this generator yields
-    ``(step, system, cmd, environment)`` for all supported steps.
+    ``(step, system, environment)`` for all supported steps.
     """
-    # Set variable like CIRCLE="true" allowing to test for the service
-    environment = dict(os.environ)
-    environment[SERVICES_ENV_VAR[service]] = "true"
 
     # By default, a service is associated with only one "implicit" operating
     # system.
@@ -43,8 +74,9 @@ def scikit_steps(tmpdir, service):
         if env_json.exists():
             env_json.remove()
 
-        if system:
-            environment[osenv[system]] = system
+        # Set variable like CIRCLE="true" allowing to test for the service
+        environment = os.environ
+        enable_service(service, environment, system)
 
         for step in [
                 'before_install',
@@ -57,55 +89,69 @@ def scikit_steps(tmpdir, service):
             yield step, system, environment
 
 
-def _generate_scikit_yml_content():
+def _generate_scikit_yml_content(service):
     template_step = (
-        """
+        r"""
         {what}:
 
           environment:
             WHAT: {what}
           commands:
-            - python -c 'import os; print("%s" % os.environ["WHAT"])'
-            - python -c "import os; print('expand:%s' % \\"$<WHAT>\\")"
-            - python -c 'import os; print("expand-2:%s" % "$<WHAT>")'
-            - python --version
+            - $<PYTHON> -c "import os; print('%s' % os.environ['WHAT'])"
+            {command_0}
+            {command_1}
+            - $<PYTHON> -c "import sys; print('%s.%s.%s' % sys.version_info[:3])"
 
           appveyor:
             environment:
               SERVICE: appveyor
             commands:
-              - python -c 'import os; print("%s / %s" % (os.environ["WHAT"], os.environ["SERVICE"]))'
+              - $<PYTHON> -c "import os; print('%s / %s' % (os.environ['WHAT'], os.environ['SERVICE']))"
 
           circle:
             environment:
               SERVICE: circle
             commands:
-              - python -c 'import os; print("%s / %s" % (os.environ["WHAT"], os.environ["SERVICE"]))'
+              - $<PYTHON> -c "import os; print('%s / %s' % (os.environ['WHAT'], os.environ['SERVICE']))"
 
           travis:
             linux:
               environment:
                 SERVICE: travis-linux
               commands:
-                - python -c 'import os; print("%s / %s / %s" % (os.environ["WHAT"], os.environ["SERVICE"], os.environ["TRAVIS_OS_NAME"]))'
+                - $<PYTHON> -c "import os; print('%s / %s / %s' % (os.environ['WHAT'], os.environ['SERVICE'], os.environ['TRAVIS_OS_NAME']))"
             osx:
               environment:
                 SERVICE: travis-osx
               commands:
-                - python -c 'import os; print("%s / %s / %s" % (os.environ["WHAT"], os.environ["SERVICE"], os.environ["TRAVIS_OS_NAME"]))'
+                - $<PYTHON> -c "import os; print('%s / %s / %s' % (os.environ['WHAT'], os.environ['SERVICE'], os.environ['TRAVIS_OS_NAME']))"
         """  # noqa: E501
     )
 
     template = (
         """
-        schema_version: "0.5.0"
-        {}
-        """
+        schema_version: "{version}"
+        {{}}
+        """.format(version=SCHEMA_VERSION)
     )
+
+    if HAS_COMSPEC:
+        commands = [
+            r"""- $<PYTHON> -c "import os; print('expand:%s' % '$<WHAT>')" """,
+            r"""- $<PYTHON> -c "import os; print('expand-2:%s' % '$<WHAT>')" """
+            ]
+    else:
+        commands = [
+            r"""- $<PYTHON> -c "import os; print('expand:%s' % \"$<WHAT>\")" """,  # noqa: E501
+            r"""- $<PYTHON> -c 'import os; print("expand-2:%s" % "$<WHAT>")' """
+            ]
 
     return textwrap.dedent(template).format(
             "".join(
-                [textwrap.dedent(template_step).format(what=step) for step in
+                [textwrap.dedent(template_step).format(
+                    what=step,
+                    command_0=commands[0],
+                    command_1=commands[1]) for step in
                  ['before_install',
                   'install',
                   'before_build',
@@ -117,94 +163,116 @@ def _generate_scikit_yml_content():
     )
 
 
-@pytest.mark.parametrize("service",
-                         ['appveyor', 'circle', 'travis'])
-def test_driver(service, tmpdir):
+@pytest.mark.parametrize("service", SERVICES)
+def test_driver(service, tmpdir, capfd):
 
     tmpdir.join('scikit-ci.yml').write(
-        _generate_scikit_yml_content()
+        _generate_scikit_yml_content(service)
     )
 
-    for step, system, environment in scikit_steps(tmpdir, service):
+    outputs = []
 
-        with push_dir(str(tmpdir)),\
-             push_env(**environment), \
-             CaptureOutput() as capturer:
-            execute_step(step)
-            output_lines = capturer.get_lines()
+    with push_env():
 
-        second_line = "%s / %s" % (step, service)
-        if system:
-            second_line = "%s-%s / %s" % (second_line, system, system)
+        for step, system, environment in scikit_steps(tmpdir, service):
 
-        assert output_lines[1] == "%s" % step
-        assert output_lines[3] == "expand: %s" % step
-        assert output_lines[5] == "expand-2:%s" % (
-            step if service == 'appveyor' else "$<WHAT>")
-        assert output_lines[7] == "Python %s" % sys.version.split()[0]
-        assert output_lines[9] == second_line
+            if "PYTHON" not in environment:
+                environment["PYTHON"] = "python"
+
+            with push_dir(str(tmpdir)), push_env(**environment):
+                execute_step(step)
+                output_lines, error_lines = captured_lines(capfd)
+
+            outputs.append((step, system, output_lines, error_lines))
+
+    with capfd.disabled():
+        for step, system, output_lines, error_lines in outputs:
+
+            second_line = "%s / %s" % (step, service)
+            if system:
+                second_line = "%s-%s / %s" % (second_line, system, system)
+
+            try:
+                extra_space = "" if HAS_COMSPEC else " "
+                assert output_lines[1] == "%s" % step
+                assert output_lines[3] == "expand:%s%s" % (extra_space, step)
+                assert output_lines[5] == "expand-2:%s" % (
+                    step if HAS_COMSPEC else "$<WHAT>")
+                assert output_lines[7] == "%s.%s.%s" % sys.version_info[:3]
+                assert output_lines[9] == second_line
+            except AssertionError as error:
+                context = service + (("-" + system) if system else "")
+                print("\n[%s: %s]" % (context, step))
+                display_captured_text(output_lines, error_lines)
+                if sys.version_info[0] > 2:
+                    raise error.with_traceback(sys.exc_info()[2])
+                else:
+                    raise
 
 
-def test_shell_command(tmpdir):
+def test_shell_command(tmpdir, capfd):
 
     if platform.system().lower() == "windows":
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
-            """
-            schema_version: "0.5.0"
+            r"""
+            schema_version: "{version}"
             install:
               commands:
-                - for %G in (foo bar) do python -c "print('var %G')"
-                - "for %G in oof rab; do python -c \\"print('var: %G')\\"; done"
+                - FOR %G IN (foo bar) DO python -c "print('var %G')"
             """
-        ))
+        ).format(version=SCHEMA_VERSION))
         service = 'appveyor'
     else:
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
-            """
-            schema_version: "0.5.0"
+            r"""
+            schema_version: "{version}"
             install:
               commands:
                 - for var in foo bar; do python -c "print('var $var')"; done
-                - "for var in oof rab; do python -c \\"print('var: $var')\\"; done"
+                - "for var in oof rab; do python -c \"print('var: $var')\"; done"
             """  # noqa: E501
-        ))
+        ).format(version=SCHEMA_VERSION))
         service = 'circle'
 
     for step, system, environment in scikit_steps(tmpdir, service):
 
-        with push_dir(str(tmpdir)), \
-             push_env(**environment), \
-             CaptureOutput() as capturer:
+        with push_dir(str(tmpdir)), push_env(**environment):
             execute_step(step)
-            output_lines = capturer.get_lines()
+            output_lines, _ = captured_lines(capfd)
 
         if step == 'install':
-            assert output_lines[1] == "var foo"
-            assert output_lines[2] == "var bar"
-            assert output_lines[4] == "var: oof"
-            assert output_lines[5] == "var: rab"
+            if platform.system().lower() == "windows":
+                assert output_lines[3] == "var foo"
+                assert output_lines[6] == "var bar"
+            else:
+                assert output_lines[1] == "var foo"
+                assert output_lines[2] == "var bar"
+                assert output_lines[4] == "var: oof"
+                assert output_lines[5] == "var: rab"
         else:
-            assert not output_lines
+            assert output_lines[0] == ''
 
 
-def test_multi_line_shell_command(tmpdir):
+@pytest.mark.skipif(platform.system().lower() == "windows",
+                    reason="not supported")
+def test_multi_line_shell_command(tmpdir, capfd):
     if platform.system().lower() == "windows":
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
-            """
-            schema_version: "0.5.0"
+            r"""
+            schema_version: "{version}"
             install:
               commands:
                 - |
-                  for % G in (foo bar) do ^
+                  for %G in (foo bar) do ^
                   python -c "print('var %G')"
             """
-        ))
+        ).format(version=SCHEMA_VERSION))
         service = 'appveyor'
 
     else:
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
-            """
-            schema_version: "0.5.0"
+            r"""
+            schema_version: "{version}"
             install:
               commands:
                 - |
@@ -212,22 +280,20 @@ def test_multi_line_shell_command(tmpdir):
                     python -c "print('var $var')"
                   done
             """
-        ))
+        ).format(version=SCHEMA_VERSION))
         service = 'circle'
 
     for step, system, environment in scikit_steps(tmpdir, service):
 
-        with push_dir(str(tmpdir)), \
-             push_env(**environment), \
-             CaptureOutput() as capturer:
+        with push_dir(str(tmpdir)), push_env(**environment):
             execute_step(step)
-            output_lines = capturer.get_lines()
+            output_lines, _ = captured_lines(capfd)
 
         if step == 'install':
             assert output_lines[3] == "var foo"
             assert output_lines[4] == "var bar"
         else:
-            assert not output_lines
+            assert output_lines[0] == ''
 
 
 def _expand_command_test(command, posix_shell, expected):
@@ -263,21 +329,22 @@ def test_expand_command_with_newline(command, posix_shell, expected):
 def test_cli(tmpdir):
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
-        schema_version: "0.5.0"
+        schema_version: "{version}"
         install:
           commands:
             - "python -c \"with open('install-done', 'w') as file: file.write('')\""
         """  # noqa: E501
-    ))
+    ).format(version=SCHEMA_VERSION))
     service = 'circle'
 
     environment = dict(os.environ)
-    environment[SERVICES_ENV_VAR[service]] = "true"
+    enable_service(service, environment)
 
-    driver_script = os.path.join(os.path.dirname(__file__), '../ci/driver.py')
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    environment['PYTHONPATH'] = root
 
     subprocess.check_call(
-        "python %s %s" % (driver_script, "install"),
+        "python -m ci install",
         shell=True,
         env=environment,
         stderr=subprocess.STDOUT,
@@ -290,36 +357,35 @@ def test_cli(tmpdir):
 def test_not_all_operating_system(tmpdir):
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
-        schema_version: "0.5.0"
+        schema_version: "{version}"
         install:
           travis:
             osx:
               environment:
                 FOO: BAR
         """  # noqa: E501
-    ))
+    ).format(version=SCHEMA_VERSION))
     service = 'travis'
 
     environment = dict(os.environ)
-    environment[SERVICES_ENV_VAR[service]] = "true"
-
-    environment["TRAVIS_OS_NAME"] = "linux"
+    enable_service(service, environment, "linux")
 
     with push_dir(str(tmpdir)), push_env(**environment):
         execute_step("install")
 
 
-def test_environment_persist(tmpdir):
+def test_environment_persist(tmpdir, capfd):
+    quote = "" if HAS_COMSPEC else "\""
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
-        schema_version: "0.5.0"
+        schema_version: "{version}"
         before_install:
           environment:
             FOO: hello
             BAR: world
             EMPTY: ""
           commands:
-            - echo "1 [$<FOO>] [$<BAR>] [$<EMPTY>]"
+            - echo {quote}1 [$<FOO>] [$<BAR>] [$<EMPTY>]{quote}
           circle:
             environment:
               BAR: under world
@@ -327,65 +393,68 @@ def test_environment_persist(tmpdir):
           environment:
             BAR: beautiful world
           commands:
-            - echo "2 [$<FOO>] [$<BAR>] [$<EMPTY>]"
+            - echo {quote}2 [$<FOO>] [$<BAR>] [$<EMPTY>]{quote}
         """
-    ))
+    ).format(quote=quote, version=SCHEMA_VERSION))
     service = 'circle'
 
     environment = dict(os.environ)
-    environment[SERVICES_ENV_VAR[service]] = "true"
+    enable_service(service, environment)
 
-    with push_dir(str(tmpdir)), push_env(**environment), \
-            CaptureOutput() as capturer:
+    with push_dir(str(tmpdir)), push_env(**environment):
         execute_step("before_install")
         execute_step("install")
-        output_lines = capturer.get_lines()
+        output_lines, _ = captured_lines(capfd)
 
     assert output_lines[1] == "1 [hello] [under world] []"
     assert output_lines[3] == "2 [hello] [beautiful world] []"
 
 
-def test_within_environment_expansion(tmpdir):
+def test_within_environment_expansion(tmpdir, capfd):
+    quote = "" if HAS_COMSPEC else "\""
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
-        schema_version: "0.5.0"
+        schema_version: "{version}"
         before_install:
           environment:
             FOO: hello
             BAR: $<WHAT>
             REAL_DIR: $<VERY_DIR>\\real
           commands:
-            - echo "[$<FOO> $<BAR> $<STRING>]"
-            - echo "[\\the\\thing]"
-            - echo "[$<FOO_DIR>\\the\\thing]"
-            - echo "[$<FOO_DIR>\\the$<REAL_DIR>\\thing]"
+            - echo {quote}[$<FOO> $<BAR> $<STRING>]{quote}
+            - echo {quote}[\\the\\thing]{quote}
+            - echo {quote}[$<FOO_DIR>\\the\\thing]{quote}
+            - echo {quote}[$<FOO_DIR>\\the$<REAL_DIR>\\thing]{quote}
         """
-    ))
+    ).format(quote=quote, version=SCHEMA_VERSION))
     service = 'circle'
 
     environment = dict(os.environ)
-    environment[SERVICES_ENV_VAR[service]] = "true"
+    enable_service(service, environment)
+
+    quote_type = "'" if HAS_COMSPEC else "\""
+    backslashes = "\\\\\\\\" if HAS_COMSPEC else "\\"
 
     environment["WHAT"] = "world"
-    environment["STRING"] = "of \"wonders\""
+    environment["STRING"] = "of " + quote_type + "wonders" + quote_type
     environment["FOO_DIR"] = "C:\\path\\to"
     environment["VERY_DIR"] = "\\very"
 
-    with push_dir(str(tmpdir)), push_env(**environment), \
-            CaptureOutput() as capturer:
+    with push_dir(str(tmpdir)), push_env(**environment):
         execute_step("before_install")
-        output_lines = capturer.get_lines()
+        output_lines, _ = captured_lines(capfd)
 
-    assert output_lines[1] == "[hello world of \"wonders\"]"
-    assert output_lines[3] == "[\\the\\thing]"
-    assert output_lines[5] == "[C:\\path\\to\\the\\thing]"
-    assert output_lines[7] == "[C:\\path\\to\\the\\very\\real\\thing]"
+    assert output_lines[1] == "[hello world of " + quote_type + "wonders" + quote_type + "]"  # noqa: E501
+    assert output_lines[3] == "[\\the\\thing]".replace("\\", backslashes)
+    assert output_lines[5] == "[C:\\path\\to\\the\\thing]".replace("\\", backslashes)  # noqa: E501
+    assert output_lines[7] == "[C:\\path\\to\\the\\very\\real\\thing]".replace("\\", backslashes)  # noqa: E501
 
 
-def test_expand_environment(tmpdir):
+def test_expand_environment(tmpdir, capfd):
+    quote = "" if HAS_COMSPEC else "\""
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
-        schema_version: "0.5.0"
+        schema_version: "{version}"
         before_install:
           environment:
             SYMBOLS: b;$<SYMBOLS>
@@ -393,7 +462,7 @@ def test_expand_environment(tmpdir):
             environment:
               SYMBOLS: a;$<SYMBOLS>
           commands:
-            - echo "before_install [$<SYMBOLS>]"
+            - echo {quote}before_install [$<SYMBOLS>]{quote}
         install:
           environment:
             SYMBOLS: 9;$<SYMBOLS>
@@ -401,21 +470,20 @@ def test_expand_environment(tmpdir):
             environment:
               SYMBOLS: 8;$<SYMBOLS>
           commands:
-            - echo "install [$<SYMBOLS>]"
+            - echo {quote}install [$<SYMBOLS>]{quote}
         """
-    ))
+    ).format(quote=quote, version=SCHEMA_VERSION))
     service = 'circle'
 
     environment = dict(os.environ)
-    environment[SERVICES_ENV_VAR[service]] = "true"
+    enable_service(service, environment)
 
     environment["SYMBOLS"] = "c;d;e"
 
-    with push_dir(str(tmpdir)), push_env(**environment), \
-            CaptureOutput() as capturer:
+    with push_dir(str(tmpdir)), push_env(**environment):
         execute_step("before_install")
         execute_step("install")
-        output_lines = capturer.get_lines()
+        output_lines, _ = captured_lines(capfd)
 
     assert output_lines[1] == "before_install [a;b;c;d;e]"
     assert output_lines[3] == "install [8;9;a;b;c;d;e]"

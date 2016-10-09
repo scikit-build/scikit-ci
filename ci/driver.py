@@ -7,21 +7,8 @@ import shlex
 import subprocess
 import sys
 
-from constants import SCIKIT_CI_CONFIG, SERVICES, STEPS
-
-try:
-    from . import utils
-except (SystemError, ValueError):
-    import utils
-
-POSIX_SHELL = True
-
-SERVICES_SHELL_CONFIG = {
-    'appveyor-None': not POSIX_SHELL,
-    'circle-None': POSIX_SHELL,
-    'travis-linux': POSIX_SHELL,
-    'travis-osx': POSIX_SHELL,
-}
+from . import utils
+from .constants import SCIKIT_CI_CONFIG, SERVICES, STEPS
 
 
 class DriverContext(object):
@@ -75,22 +62,13 @@ class Driver(object):
 
     def check_call(self, *args, **kwds):
         kwds["env"] = kwds.get("env", self.env)
+        kwds["shell"] = True
 
         if "COMSPEC" in os.environ:
-            cmd_exe = ["cmd.exe", "/E:ON", "/V:ON", "/C"]
+            cmd = "cmd.exe /E:ON /V:ON /C \"%s\"" % args[0]
+            args = [cmd]
 
-            # Format the list of arguments appropriately for display. When
-            # formatting a command and its arguments, the user should be able
-            # to execute the command by copying and pasting the output directly
-            # into a shell.
-            self.log("[scikit-ci] Executing: %s \"%s\"" % (
-                ' '.join(cmd_exe), args[0]))
-
-            args = [cmd_exe + [args[0]]]
-
-        else:
-            kwds["shell"] = True
-            self.log("[scikit-ci] Executing: %s" % args[0])
+        self.log("[scikit-ci] Executing: %s" % args[0])
         return subprocess.check_call(*args, **kwds)
 
     def env_context(self, env_file="env.json"):
@@ -153,7 +131,7 @@ class Driver(object):
         return "\n".join(expanded_lines)
 
     @staticmethod
-    def parse_config(config_file, stage_name, service_name):
+    def parse_config(config_file, stage_name, service_name, global_env):
         with open(config_file) as input_stream:
             data = ruamel.yaml.load(input_stream, ruamel.yaml.RoundTripLoader)
         commands = []
@@ -170,7 +148,7 @@ class Driver(object):
 
                 # consider service offering multiple operating system support
                 if SERVICES[service_name]:
-                    operating_system = os.environ[SERVICES[service_name]]
+                    operating_system = global_env[SERVICES[service_name]]
                     system = system.get(operating_system, {})
 
                 # if any, set service specific environment
@@ -188,7 +166,7 @@ class Driver(object):
         service_name = utils.current_service()
 
         environment, commands = self.parse_config(
-            SCIKIT_CI_CONFIG, stage_name, service_name)
+            SCIKIT_CI_CONFIG, stage_name, service_name, self.env)
 
         # Expand stage environment variables
         for name, value in environment.items():
@@ -204,8 +182,7 @@ class Driver(object):
                 value = value.replace(old, new)
             self.env[name] = value
 
-        posix_shell = SERVICES_SHELL_CONFIG['{}-{}'.format(
-            service_name, utils.current_operating_system(service_name))]
+        posix_shell = "COMSPEC" not in os.environ
 
         for cmd in commands:
             # Expand environment variables used within commands
@@ -225,23 +202,3 @@ def execute_step(step):
     d = Driver()
     with d.env_context():
         d.execute_commands(step)
-
-
-def main():
-    """The main entry point to ``ci.py``.
-
-    This is installed as the script entry point.
-    """
-
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("step", type=str, choices=STEPS,
-                        help="name of the step to execute")
-    args = parser.parse_args()
-
-    execute_step(args.step)
-
-
-if __name__ == "__main__":
-    main()
