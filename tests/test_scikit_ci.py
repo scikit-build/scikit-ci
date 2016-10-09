@@ -9,35 +9,43 @@ import textwrap
 from . import captured_lines, display_captured_text, push_dir, push_env
 from ci.constants import SERVICES, SERVICES_ENV_VAR
 from ci.driver import Driver, execute_step
-from ci.utils import current_service
+from ci.utils import current_service, current_operating_system
 
 
-def enable_service(service, environment=os.environ):
+def enable_service(service, environment=os.environ, operating_system=None):
     """Ensure ``service`` is enabled.
 
-    Note that before enabling ``service``, the environment variables for
-    all services are first removed from the ``environment``.
+    For multi-os services, you are expected to set ``operating_system``.
+
+    Note that before enabling ``service``, the environment variables (including
+    the one specifying which OS is enabled) for all services are first removed
+    from the ``environment``.
     """
     for any_service in SERVICES:
         if SERVICES_ENV_VAR[any_service] in environment:
             del environment[SERVICES_ENV_VAR[any_service]]
+        if SERVICES[any_service]:
+            if SERVICES[any_service] in environment:
+                del environment[SERVICES[any_service]]
     environment[SERVICES_ENV_VAR[service]] = "true"
+    if SERVICES[service]:
+        assert operating_system is not None
+        environment[SERVICES[service]] = operating_system
 
 
-@pytest.mark.parametrize("service", SERVICES)
+@pytest.mark.parametrize("service", SERVICES.keys())
 def test_current_service(service):
     with push_env():
-        enable_service(service)
+        operating_system = "linux" if SERVICES[service] else None
+        enable_service(service, operating_system=operating_system)
         assert current_service() == service
+        assert current_operating_system(service) == operating_system
 
 
 def scikit_steps(tmpdir, service):
     """Given ``tmpdir`` and ``service``, this generator yields
     ``(step, system, environment)`` for all supported steps.
     """
-    # Set variable like CIRCLE="true" allowing to test for the service
-    environment = dict(os.environ)
-    enable_service(service, environment)
 
     # By default, a service is associated with only one "implicit" operating
     # system.
@@ -60,8 +68,9 @@ def scikit_steps(tmpdir, service):
         if env_json.exists():
             env_json.remove()
 
-        if system:
-            environment[osenv[system]] = system
+        # Set variable like CIRCLE="true" allowing to test for the service
+        environment = os.environ
+        enable_service(service, environment, system)
 
         for step in [
                 'before_install',
@@ -143,13 +152,14 @@ def test_driver(service, tmpdir, capfd):
 
     outputs = []
 
-    for step, system, environment in scikit_steps(tmpdir, service):
+    with push_env():
+        for step, system, environment in scikit_steps(tmpdir, service):
 
-        with push_dir(str(tmpdir)), push_env(**environment):
-            execute_step(step)
-            output_lines, error_lines = captured_lines(capfd)
+            with push_dir(str(tmpdir)), push_env(**environment):
+                execute_step(step)
+                output_lines, error_lines = captured_lines(capfd)
 
-        outputs.append((step, system, output_lines, error_lines))
+            outputs.append((step, system, output_lines, error_lines))
 
     with capfd.disabled():
         for step, system, output_lines, error_lines in outputs:
@@ -328,9 +338,7 @@ def test_not_all_operating_system(tmpdir):
     service = 'travis'
 
     environment = dict(os.environ)
-    enable_service(service, environment)
-
-    environment["TRAVIS_OS_NAME"] = "linux"
+    enable_service(service, environment, "linux")
 
     with push_dir(str(tmpdir)), push_env(**environment):
         execute_step("install")
