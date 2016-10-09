@@ -1,0 +1,17 @@
+include .coveragerc
+include .flake8
+include AUTHORS.rst
+include CONTRIBUTING.rst
+include HISTORY.rst
+include LICENSE_Apache_20
+include MANIFEST.in
+include pytest.ini
+include README.rst
+include requirements.txt
+include requirements-dev.txt
+
+recursive-include tests *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+
+recursive-include docs *.rst conf.py Makefile make.bat
