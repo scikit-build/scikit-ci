@@ -1,0 +1,88 @@
+---
+
+branches:
+ only:
+  - master
+
+version: "0.0.1.{build}"
+
+environment:
+  matrix:
+
+    - PYTHON_DIR: "C:\\Python27-x64"
+      BLOCK: "0"
+
+    - PYTHON_DIR: "C:\\Python35-x64"
+      BLOCK: "0"
+
+init:
+  - ps: "\
+      iex (\
+        (New-Object Net.Webclient).DownloadString(\
+          'https://raw.githubusercontent.com/\
+            appveyor/ci/master/scripts/enable-rdp.ps1'\
+        )\
+      )"
+
+  # If there is a newer build queued for the same PR, cancel this one.
+  # The AppVeyor 'rollout builds' option is supposed to serve the same
+  # purpose but it is problematic because it tends to cancel builds pushed
+  # directly to master instead of just PR builds (or the converse).
+  # credits: JuliaLang developers.
+  - ps: "\
+    if (\
+      $env:APPVEYOR_PULL_REQUEST_NUMBER -and \
+      $env:APPVEYOR_BUILD_NUMBER -ne (\
+        (\
+          Invoke-RestMethod \
+            ` https://ci.appveyor.com/api/projects/\
+                $env:APPVEYOR_ACCOUNT_NAME/\
+                $env:APPVEYOR_PROJECT_SLUG/\
+                history?recordsNumber=50\
+        ).builds | ` Where-Object pullRequestId -eq \
+                                  $env:APPVEYOR_PULL_REQUEST_NUMBER\
+      )[0].buildNumber\
+    ) { ` \
+      throw \"There are newer queued builds \
+              for this pull request, failing early.\" \
+    }"
+
+  - |
+    git clone git://github.com/scikit-build/scikit-ci -b integrate-with-ci ../bootstrap-scikit-ci
+    python.exe -m pip install -r ../bootstrap-scikit-ci/requirements.txt
+    python.exe -m pip install ../bootstrap-scikit-ci/
+
+install:
+  - python -m ci before_install
+  - python -m ci install
+
+build_script:
+  - python -m ci before_build
+  - python -m ci build"
+
+test_script:
+  - python -m ci test"
+
+after_test:
+  - python -m ci after_test"
+
+on_finish:
+  - ps: "\
+      if ($Env:BLOCK -ceq \"1\") {
+        $blockRdp = $true ; \
+        iex (\
+          (New-Object Net.Webclient).DownloadString(\
+            'https://raw.githubusercontent.com/\
+             appveyor/ci/master/scripts/enable-rdp.ps1'\
+          )\
+        )
+      }"
+
+artifacts:
+  # Archive the generated packages in the ci.appveyor.com build report.
+  - path: dist\*
+
+matrix:
+  fast_finish: false
+
+shallow_clone: false

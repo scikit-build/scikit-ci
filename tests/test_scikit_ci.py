@@ -10,6 +10,7 @@ from . import captured_lines, push_dir, push_env
 from ci.constants import SERVICES_ENV_VAR
 from ci.driver import Driver
 from ci.driver import execute_step
+from ci.utils import current_service
 
 
 def scikit_steps(tmpdir, service):
@@ -115,8 +116,16 @@ def _generate_scikit_yml_content():
     )
 
 
-@pytest.mark.parametrize("service",
-                         ['appveyor', 'circle', 'travis'])
+# If running test on one of the CI service, exclude
+# the other case.
+try:
+    SERVICES = [current_service()]
+except Exception:
+    assert "CI" not in os.environ
+    SERVICES = ['appveyor', 'circle', 'travis']
+
+
+@pytest.mark.parametrize("service", SERVICES)
 def test_driver(service, tmpdir, capfd):
 
     tmpdir.join('scikit-ci.yml').write(
