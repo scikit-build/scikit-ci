@@ -15,7 +15,7 @@ from ci.utils import current_service
 
 def scikit_steps(tmpdir, service):
     """Given ``tmpdir`` and ``service``, this generator yields
-    ``(step, system, cmd, environment)`` for all supported steps.
+    ``(step, system, environment)`` for all supported steps.
     """
     # Set variable like CIRCLE="true" allowing to test for the service
     environment = dict(os.environ)
