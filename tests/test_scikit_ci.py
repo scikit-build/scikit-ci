@@ -183,8 +183,9 @@ def test_driver(service, tmpdir, capfd):
                 second_line = "%s-%s / %s" % (second_line, system, system)
 
             try:
+                extra_space = "" if "COMSPEC" in os.environ else " "
                 assert output_lines[1] == "%s" % step
-                assert output_lines[3] == "expand: %s" % step
+                assert output_lines[3] == "expand:%s%s" % (extra_space, step)
                 assert output_lines[5] == "expand-2:%s" % (
                     step if "COMSPEC" in os.environ else "$<WHAT>")
                 assert output_lines[7] == "%s.%s.%s" % sys.version_info[:3]
