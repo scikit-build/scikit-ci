@@ -14,6 +14,9 @@ from ci.utils import current_service, current_operating_system
 """Indicate if the system has a Windows command line interpreter"""
 HAS_COMSPEC = "COMSPEC" in os.environ
 
+"""Version of the tested scikit-ci schema."""
+SCHEMA_VERSION = "0.5.0"
+
 
 def enable_service(service, environment=os.environ, operating_system=None):
     """Ensure ``service`` is enabled.
@@ -127,9 +130,9 @@ def _generate_scikit_yml_content(service):
 
     template = (
         """
-        schema_version: "0.5.0"
-        {}
-        """
+        schema_version: "{version}"
+        {{}}
+        """.format(version=SCHEMA_VERSION)
     )
 
     if HAS_COMSPEC:
@@ -208,23 +211,23 @@ def test_shell_command(tmpdir, capfd):
     if platform.system().lower() == "windows":
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
             r"""
-            schema_version: "0.5.0"
+            schema_version: "{version}"
             install:
               commands:
                 - FOR %G IN (foo bar) DO python -c "print('var %G')"
             """
-        ))
+        ).format(version=SCHEMA_VERSION))
         service = 'appveyor'
     else:
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
             r"""
-            schema_version: "0.5.0"
+            schema_version: "{version}"
             install:
               commands:
                 - for var in foo bar; do python -c "print('var $var')"; done
                 - "for var in oof rab; do python -c \"print('var: $var')\"; done"
             """  # noqa: E501
-        ))
+        ).format(version=SCHEMA_VERSION))
         service = 'circle'
 
     for step, system, environment in scikit_steps(tmpdir, service):
@@ -252,20 +255,20 @@ def test_multi_line_shell_command(tmpdir, capfd):
     if platform.system().lower() == "windows":
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
             r"""
-            schema_version: "0.5.0"
+            schema_version: "{version}"
             install:
               commands:
                 - |
                   for %G in (foo bar) do ^
                   python -c "print('var %G')"
             """
-        ))
+        ).format(version=SCHEMA_VERSION))
         service = 'appveyor'
 
     else:
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
             r"""
-            schema_version: "0.5.0"
+            schema_version: "{version}"
             install:
               commands:
                 - |
@@ -273,7 +276,7 @@ def test_multi_line_shell_command(tmpdir, capfd):
                     python -c "print('var $var')"
                   done
             """
-        ))
+        ).format(version=SCHEMA_VERSION))
         service = 'circle'
 
     for step, system, environment in scikit_steps(tmpdir, service):
@@ -322,12 +325,12 @@ def test_expand_command_with_newline(command, posix_shell, expected):
 def test_cli(tmpdir):
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
-        schema_version: "0.5.0"
+        schema_version: "{version}"
         install:
           commands:
             - "python -c \"with open('install-done', 'w') as file: file.write('')\""
         """  # noqa: E501
-    ))
+    ).format(version=SCHEMA_VERSION))
     service = 'circle'
 
     environment = dict(os.environ)
@@ -350,14 +353,14 @@ def test_cli(tmpdir):
 def test_not_all_operating_system(tmpdir):
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
-        schema_version: "0.5.0"
+        schema_version: "{version}"
         install:
           travis:
             osx:
               environment:
                 FOO: BAR
         """  # noqa: E501
-    ))
+    ).format(version=SCHEMA_VERSION))
     service = 'travis'
 
     environment = dict(os.environ)
@@ -371,7 +374,7 @@ def test_environment_persist(tmpdir, capfd):
     quote = "" if HAS_COMSPEC else "\""
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
-        schema_version: "0.5.0"
+        schema_version: "{version}"
         before_install:
           environment:
             FOO: hello
@@ -388,7 +391,7 @@ def test_environment_persist(tmpdir, capfd):
           commands:
             - echo {quote}2 [$<FOO>] [$<BAR>] [$<EMPTY>]{quote}
         """
-    ).format(quote=quote))
+    ).format(quote=quote, version=SCHEMA_VERSION))
     service = 'circle'
 
     environment = dict(os.environ)
@@ -407,7 +410,7 @@ def test_within_environment_expansion(tmpdir, capfd):
     quote = "" if HAS_COMSPEC else "\""
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
-        schema_version: "0.5.0"
+        schema_version: "{version}"
         before_install:
           environment:
             FOO: hello
@@ -419,7 +422,7 @@ def test_within_environment_expansion(tmpdir, capfd):
             - echo {quote}[$<FOO_DIR>\\the\\thing]{quote}
             - echo {quote}[$<FOO_DIR>\\the$<REAL_DIR>\\thing]{quote}
         """
-    ).format(quote=quote))
+    ).format(quote=quote, version=SCHEMA_VERSION))
     service = 'circle'
 
     environment = dict(os.environ)
@@ -447,7 +450,7 @@ def test_expand_environment(tmpdir, capfd):
     quote = "" if HAS_COMSPEC else "\""
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
-        schema_version: "0.5.0"
+        schema_version: "{version}"
         before_install:
           environment:
             SYMBOLS: b;$<SYMBOLS>
@@ -465,7 +468,7 @@ def test_expand_environment(tmpdir, capfd):
           commands:
             - echo {quote}install [$<SYMBOLS>]{quote}
         """
-    ).format(quote=quote))
+    ).format(quote=quote, version=SCHEMA_VERSION))
     service = 'circle'
 
     environment = dict(os.environ)
