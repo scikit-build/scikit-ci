@@ -208,8 +208,7 @@ def test_shell_command(tmpdir, capfd):
             schema_version: "0.5.0"
             install:
               commands:
-                - for %G in (foo bar) do python -c "print('var %G')"
-                - "for %G in oof rab; do python -c \"print('var: %G')\"; done"
+                - FOR %G IN (foo bar) DO python -c "print('var %G')"
             """
         ))
         service = 'appveyor'
@@ -232,14 +231,20 @@ def test_shell_command(tmpdir, capfd):
             output_lines, _ = captured_lines(capfd)
 
         if step == 'install':
-            assert output_lines[1] == "var foo"
-            assert output_lines[2] == "var bar"
-            assert output_lines[4] == "var: oof"
-            assert output_lines[5] == "var: rab"
+            if platform.system().lower() == "windows":
+                assert output_lines[3] == "var foo"
+                assert output_lines[6] == "var bar"
+            else:
+                assert output_lines[1] == "var foo"
+                assert output_lines[2] == "var bar"
+                assert output_lines[4] == "var: oof"
+                assert output_lines[5] == "var: rab"
         else:
             assert output_lines[0] == ''
 
 
+@pytest.mark.skipif(platform.system().lower() == "windows",
+                    reason="not supported")
 def test_multi_line_shell_command(tmpdir, capfd):
     if platform.system().lower() == "windows":
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
@@ -248,7 +253,7 @@ def test_multi_line_shell_command(tmpdir, capfd):
             install:
               commands:
                 - |
-                  for % G in (foo bar) do ^
+                  for %G in (foo bar) do ^
                   python -c "print('var %G')"
             """
         ))
@@ -360,6 +365,7 @@ def test_not_all_operating_system(tmpdir):
 
 
 def test_environment_persist(tmpdir, capfd):
+    quote = "" if "COMSPEC" in os.environ else "\""
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
         schema_version: "0.5.0"
@@ -369,7 +375,7 @@ def test_environment_persist(tmpdir, capfd):
             BAR: world
             EMPTY: ""
           commands:
-            - echo "1 [$<FOO>] [$<BAR>] [$<EMPTY>]"
+            - echo {quote}1 [$<FOO>] [$<BAR>] [$<EMPTY>]{quote}
           circle:
             environment:
               BAR: under world
@@ -377,9 +383,9 @@ def test_environment_persist(tmpdir, capfd):
           environment:
             BAR: beautiful world
           commands:
-            - echo "2 [$<FOO>] [$<BAR>] [$<EMPTY>]"
+            - echo {quote}2 [$<FOO>] [$<BAR>] [$<EMPTY>]{quote}
         """
-    ))
+    ).format(quote=quote))
     service = 'circle'
 
     environment = dict(os.environ)
@@ -395,6 +401,7 @@ def test_environment_persist(tmpdir, capfd):
 
 
 def test_within_environment_expansion(tmpdir, capfd):
+    quote = "" if "COMSPEC" in os.environ else "\""
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
         schema_version: "0.5.0"
@@ -404,19 +411,22 @@ def test_within_environment_expansion(tmpdir, capfd):
             BAR: $<WHAT>
             REAL_DIR: $<VERY_DIR>\\real
           commands:
-            - echo "[$<FOO> $<BAR> $<STRING>]"
-            - echo "[\\the\\thing]"
-            - echo "[$<FOO_DIR>\\the\\thing]"
-            - echo "[$<FOO_DIR>\\the$<REAL_DIR>\\thing]"
+            - echo {quote}[$<FOO> $<BAR> $<STRING>]{quote}
+            - echo {quote}[\\the\\thing]{quote}
+            - echo {quote}[$<FOO_DIR>\\the\\thing]{quote}
+            - echo {quote}[$<FOO_DIR>\\the$<REAL_DIR>\\thing]{quote}
         """
-    ))
+    ).format(quote=quote))
     service = 'circle'
 
     environment = dict(os.environ)
     enable_service(service, environment)
 
+    quote_type = "'" if "COMSPEC" in os.environ else "\""
+    backslashes = "\\\\\\\\" if "COMSPEC" in os.environ else "\\"
+
     environment["WHAT"] = "world"
-    environment["STRING"] = "of \"wonders\""
+    environment["STRING"] = "of " + quote_type + "wonders" + quote_type
     environment["FOO_DIR"] = "C:\\path\\to"
     environment["VERY_DIR"] = "\\very"
 
@@ -424,13 +434,14 @@ def test_within_environment_expansion(tmpdir, capfd):
         execute_step("before_install")
         output_lines, _ = captured_lines(capfd)
 
-    assert output_lines[1] == "[hello world of \"wonders\"]"
-    assert output_lines[3] == "[\\the\\thing]"
-    assert output_lines[5] == "[C:\\path\\to\\the\\thing]"
-    assert output_lines[7] == "[C:\\path\\to\\the\\very\\real\\thing]"
+    assert output_lines[1] == "[hello world of " + quote_type + "wonders" + quote_type + "]"  # noqa: E501
+    assert output_lines[3] == "[\\the\\thing]".replace("\\", backslashes)
+    assert output_lines[5] == "[C:\\path\\to\\the\\thing]".replace("\\", backslashes)  # noqa: E501
+    assert output_lines[7] == "[C:\\path\\to\\the\\very\\real\\thing]".replace("\\", backslashes)  # noqa: E501
 
 
 def test_expand_environment(tmpdir, capfd):
+    quote = "" if "COMSPEC" in os.environ else "\""
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
         schema_version: "0.5.0"
@@ -441,7 +452,7 @@ def test_expand_environment(tmpdir, capfd):
             environment:
               SYMBOLS: a;$<SYMBOLS>
           commands:
-            - echo "before_install [$<SYMBOLS>]"
+            - echo {quote}before_install [$<SYMBOLS>]{quote}
         install:
           environment:
             SYMBOLS: 9;$<SYMBOLS>
@@ -449,9 +460,9 @@ def test_expand_environment(tmpdir, capfd):
             environment:
               SYMBOLS: 8;$<SYMBOLS>
           commands:
-            - echo "install [$<SYMBOLS>]"
+            - echo {quote}install [$<SYMBOLS>]{quote}
         """
-    ))
+    ).format(quote=quote))
     service = 'circle'
 
     environment = dict(os.environ)
