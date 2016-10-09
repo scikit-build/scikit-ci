@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+
+"""
+Ci command line tool (enable python -m ci syntax)
+"""
 
 from .constants import STEPS
 from .driver import execute_step

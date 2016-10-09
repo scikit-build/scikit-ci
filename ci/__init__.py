@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 """
 scikit-ci enables a centralized and simpler CI configuration for Python
 extensions.

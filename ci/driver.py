@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+
+"""This module provides an interface to parse and exectute commands found in
+``scikit-ci.yml``."""
 
 import errno
 import json

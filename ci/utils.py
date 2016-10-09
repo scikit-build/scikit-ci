@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+
+"""This module defines functions generally useful in scikit-ci."""
 
 import os
 

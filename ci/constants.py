@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+
+"""
+This module defines constants commonly used in scikit-ci.
+"""
 
 """Name of the configuration."""
 SCIKIT_CI_CONFIG = "scikit-ci.yml"
