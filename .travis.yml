@@ -40,7 +40,7 @@ cache:
 
 before_install:
   - |
-    git clone git://github.com/scikit-build/scikit-ci -b integrate-with-ci ../boostrap-scikit-ci
+    git clone git://github.com/scikit-build/scikit-ci ../boostrap-scikit-ci
     pip install -r ../boostrap-scikit-ci/requirements.txt
     pip install  ../boostrap-scikit-ci
 
