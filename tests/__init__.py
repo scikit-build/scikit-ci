@@ -97,3 +97,31 @@ def captured_lines(cap):
     """
     out, err = cap.readouterr()
     return out.split("\n"), err.split("\n")
+
+
+def display_captured_text(output_lines, error_lines, with_lineno=True):
+    """Display the content of captured ``output_lines`` and
+    ``error_lines``.
+
+    Here is an example of display::
+
+        [Output]
+        0: This is an output line
+        1: And an other
+
+        [Error]
+        0: This is an error line
+
+    Note that your are responsible to protect this call using
+    the ``disabled()`` context manager.
+
+    See http://doc.pytest.org/en/latest/capture.html
+    """
+
+    def display_lines(title, lines):
+        print("\n[%s]" % title)
+        for lineno, line in enumerate(lines):
+            print("%s%s" % (str(lineno)+": " if with_lineno else "", line))
+
+    display_lines("Output", output_lines)
+    display_lines("Error", error_lines)

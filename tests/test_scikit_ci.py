@@ -6,7 +6,7 @@ import subprocess
 import sys
 import textwrap
 
-from . import captured_lines, push_dir, push_env
+from . import captured_lines, display_captured_text, push_dir, push_env
 from ci.constants import SERVICES_ENV_VAR
 from ci.driver import Driver
 from ci.driver import execute_step
@@ -132,22 +132,40 @@ def test_driver(service, tmpdir, capfd):
         _generate_scikit_yml_content()
     )
 
+    outputs = []
+
     for step, system, environment in scikit_steps(tmpdir, service):
 
         with push_dir(str(tmpdir)), push_env(**environment):
             execute_step(step)
             output_lines, error_lines = captured_lines(capfd)
 
-        second_line = "%s / %s" % (step, service)
-        if system:
-            second_line = "%s-%s / %s" % (second_line, system, system)
+        outputs.append((step, system, output_lines, error_lines))
 
-        assert output_lines[1] == "%s" % step
-        assert output_lines[3] == "expand: %s" % step
-        assert output_lines[5] == "expand-2:%s" % (
-            step if service == 'appveyor' else "$<WHAT>")
-        assert error_lines[0] == "Python %s" % sys.version.split()[0]
-        assert output_lines[8] == second_line
+    with capfd.disabled():
+        for step, system, output_lines, error_lines in outputs:
+
+            second_line = "%s / %s" % (step, service)
+            if system:
+                second_line = "%s-%s / %s" % (second_line, system, system)
+
+            try:
+                assert output_lines[1] == "%s" % step
+                assert output_lines[3] == "expand: %s" % step
+                assert output_lines[5] == "expand-2:%s" % (
+                    step if service == 'appveyor' else "$<WHAT>")
+                assert error_lines[0] == "Python %s" % sys.version.split()[0]
+                assert output_lines[8] == second_line
+            except AssertionError as error:
+                context = service + (("-" + system) if system else "")
+                print("\n[%s: %s]" % (context, step))
+                display_captured_text(output_lines, error_lines)
+                if sys.version_info[0] > 2:
+                    raise error.with_traceback(sys.exc_info()[2])
+                else:
+                    raise (sys.exc_info()[0],
+                           sys.exc_info()[1],
+                           sys.exc_info()[2])
 
 
 def test_shell_command(tmpdir, capfd):
