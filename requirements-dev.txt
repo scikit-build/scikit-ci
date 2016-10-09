@@ -4,3 +4,4 @@ flake8==3.0.4
 pytest==3.0.2
 pytest-cov==2.3.1
 pytest-runner==2.9
+wheel==0.29.0
