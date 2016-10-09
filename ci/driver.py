@@ -149,7 +149,7 @@ class Driver(object):
         return "\n".join(expanded_lines)
 
     @staticmethod
-    def parse_config(config_file, stage_name, service_name):
+    def parse_config(config_file, stage_name, service_name, global_env):
         with open(config_file) as input_stream:
             data = ruamel.yaml.load(input_stream, ruamel.yaml.RoundTripLoader)
         commands = []
@@ -166,7 +166,7 @@ class Driver(object):
 
                 # consider service offering multiple operating system support
                 if SERVICES[service_name]:
-                    operating_system = os.environ[SERVICES[service_name]]
+                    operating_system = global_env[SERVICES[service_name]]
                     system = system.get(operating_system, {})
 
                 # if any, set service specific environment
@@ -184,7 +184,7 @@ class Driver(object):
         service_name = utils.current_service()
 
         environment, commands = self.parse_config(
-            SCIKIT_CI_CONFIG, stage_name, service_name)
+            SCIKIT_CI_CONFIG, stage_name, service_name, self.env)
 
         # Expand stage environment variables
         for name, value in environment.items():
