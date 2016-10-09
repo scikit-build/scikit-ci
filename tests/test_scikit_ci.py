@@ -97,34 +97,34 @@ def _generate_scikit_yml_content(service):
           environment:
             WHAT: {what}
           commands:
-            - python -c "import os; print('%s' % os.environ['WHAT'])"
+            - $<PYTHON> -c "import os; print('%s' % os.environ['WHAT'])"
             {command_0}
             {command_1}
-            - python -c "import sys; print('%s.%s.%s' % sys.version_info[:3])"
+            - $<PYTHON> -c "import sys; print('%s.%s.%s' % sys.version_info[:3])"
 
           appveyor:
             environment:
               SERVICE: appveyor
             commands:
-              - python -c "import os; print('%s / %s' % (os.environ['WHAT'], os.environ['SERVICE']))"
+              - $<PYTHON> -c "import os; print('%s / %s' % (os.environ['WHAT'], os.environ['SERVICE']))"
 
           circle:
             environment:
               SERVICE: circle
             commands:
-              - python -c "import os; print('%s / %s' % (os.environ['WHAT'], os.environ['SERVICE']))"
+              - $<PYTHON> -c "import os; print('%s / %s' % (os.environ['WHAT'], os.environ['SERVICE']))"
 
           travis:
             linux:
               environment:
                 SERVICE: travis-linux
               commands:
-                - python -c "import os; print('%s / %s / %s' % (os.environ['WHAT'], os.environ['SERVICE'], os.environ['TRAVIS_OS_NAME']))"
+                - $<PYTHON> -c "import os; print('%s / %s / %s' % (os.environ['WHAT'], os.environ['SERVICE'], os.environ['TRAVIS_OS_NAME']))"
             osx:
               environment:
                 SERVICE: travis-osx
               commands:
-                - python -c "import os; print('%s / %s / %s' % (os.environ['WHAT'], os.environ['SERVICE'], os.environ['TRAVIS_OS_NAME']))"
+                - $<PYTHON> -c "import os; print('%s / %s / %s' % (os.environ['WHAT'], os.environ['SERVICE'], os.environ['TRAVIS_OS_NAME']))"
         """  # noqa: E501
     )
 
@@ -137,13 +137,13 @@ def _generate_scikit_yml_content(service):
 
     if HAS_COMSPEC:
         commands = [
-            r"""- python -c "import os; print('expand:%s' % '$<WHAT>')" """,
-            r"""- python -c "import os; print('expand-2:%s' % '$<WHAT>')" """
+            r"""- $<PYTHON> -c "import os; print('expand:%s' % '$<WHAT>')" """,
+            r"""- $<PYTHON> -c "import os; print('expand-2:%s' % '$<WHAT>')" """
             ]
     else:
         commands = [
-            r"""- python -c "import os; print('expand:%s' % \"$<WHAT>\")" """,
-            r"""- python -c 'import os; print("expand-2:%s" % "$<WHAT>")' """
+            r"""- $<PYTHON> -c "import os; print('expand:%s' % \"$<WHAT>\")" """,  # noqa: E501
+            r"""- $<PYTHON> -c 'import os; print("expand-2:%s" % "$<WHAT>")' """
             ]
 
     return textwrap.dedent(template).format(
@@ -173,7 +173,11 @@ def test_driver(service, tmpdir, capfd):
     outputs = []
 
     with push_env():
+
         for step, system, environment in scikit_steps(tmpdir, service):
+
+            if "PYTHON" not in environment:
+                environment["PYTHON"] = "python"
 
             with push_dir(str(tmpdir)), push_env(**environment):
                 execute_step(step)
