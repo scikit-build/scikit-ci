@@ -11,6 +11,9 @@ from ci.constants import SERVICES, SERVICES_ENV_VAR
 from ci.driver import Driver, execute_step
 from ci.utils import current_service, current_operating_system
 
+"""Indicate if the system has a Windows command line interpreter"""
+HAS_COMSPEC = "COMSPEC" in os.environ
+
 
 def enable_service(service, environment=os.environ, operating_system=None):
     """Ensure ``service`` is enabled.
@@ -129,7 +132,7 @@ def _generate_scikit_yml_content(service):
         """
     )
 
-    if "COMSPEC" in os.environ:
+    if HAS_COMSPEC:
         commands = [
             r"""- python -c "import os; print('expand:%s' % '$<WHAT>')" """,
             r"""- python -c "import os; print('expand-2:%s' % '$<WHAT>')" """
@@ -183,11 +186,11 @@ def test_driver(service, tmpdir, capfd):
                 second_line = "%s-%s / %s" % (second_line, system, system)
 
             try:
-                extra_space = "" if "COMSPEC" in os.environ else " "
+                extra_space = "" if HAS_COMSPEC else " "
                 assert output_lines[1] == "%s" % step
                 assert output_lines[3] == "expand:%s%s" % (extra_space, step)
                 assert output_lines[5] == "expand-2:%s" % (
-                    step if "COMSPEC" in os.environ else "$<WHAT>")
+                    step if HAS_COMSPEC else "$<WHAT>")
                 assert output_lines[7] == "%s.%s.%s" % sys.version_info[:3]
                 assert output_lines[9] == second_line
             except AssertionError as error:
@@ -365,7 +368,7 @@ def test_not_all_operating_system(tmpdir):
 
 
 def test_environment_persist(tmpdir, capfd):
-    quote = "" if "COMSPEC" in os.environ else "\""
+    quote = "" if HAS_COMSPEC else "\""
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
         schema_version: "0.5.0"
@@ -401,7 +404,7 @@ def test_environment_persist(tmpdir, capfd):
 
 
 def test_within_environment_expansion(tmpdir, capfd):
-    quote = "" if "COMSPEC" in os.environ else "\""
+    quote = "" if HAS_COMSPEC else "\""
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
         schema_version: "0.5.0"
@@ -422,8 +425,8 @@ def test_within_environment_expansion(tmpdir, capfd):
     environment = dict(os.environ)
     enable_service(service, environment)
 
-    quote_type = "'" if "COMSPEC" in os.environ else "\""
-    backslashes = "\\\\\\\\" if "COMSPEC" in os.environ else "\\"
+    quote_type = "'" if HAS_COMSPEC else "\""
+    backslashes = "\\\\\\\\" if HAS_COMSPEC else "\\"
 
     environment["WHAT"] = "world"
     environment["STRING"] = "of " + quote_type + "wonders" + quote_type
@@ -441,7 +444,7 @@ def test_within_environment_expansion(tmpdir, capfd):
 
 
 def test_expand_environment(tmpdir, capfd):
-    quote = "" if "COMSPEC" in os.environ else "\""
+    quote = "" if HAS_COMSPEC else "\""
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
         schema_version: "0.5.0"
