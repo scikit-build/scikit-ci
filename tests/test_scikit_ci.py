@@ -7,10 +7,28 @@ import sys
 import textwrap
 
 from . import captured_lines, display_captured_text, push_dir, push_env
-from ci.constants import SERVICES_ENV_VAR
-from ci.driver import Driver
-from ci.driver import execute_step
+from ci.constants import SERVICES, SERVICES_ENV_VAR
+from ci.driver import Driver, execute_step
 from ci.utils import current_service
+
+
+def enable_service(service, environment=os.environ):
+    """Ensure ``service`` is enabled.
+
+    Note that before enabling ``service``, the environment variables for
+    all services are first removed from the ``environment``.
+    """
+    for any_service in SERVICES:
+        if SERVICES_ENV_VAR[any_service] in environment:
+            del environment[SERVICES_ENV_VAR[any_service]]
+    environment[SERVICES_ENV_VAR[service]] = "true"
+
+
+@pytest.mark.parametrize("service", SERVICES)
+def test_current_service(service):
+    with push_env():
+        enable_service(service)
+        assert current_service() == service
 
 
 def scikit_steps(tmpdir, service):
@@ -19,7 +37,7 @@ def scikit_steps(tmpdir, service):
     """
     # Set variable like CIRCLE="true" allowing to test for the service
     environment = dict(os.environ)
-    environment[SERVICES_ENV_VAR[service]] = "true"
+    enable_service(service, environment)
 
     # By default, a service is associated with only one "implicit" operating
     # system.
@@ -114,15 +132,6 @@ def _generate_scikit_yml_content():
                  ]
             )
     )
-
-
-# If running test on one of the CI service, exclude
-# the other case.
-try:
-    SERVICES = [current_service()]
-except Exception:
-    assert "CI" not in os.environ
-    SERVICES = ['appveyor', 'circle', 'travis']
 
 
 @pytest.mark.parametrize("service", SERVICES)
@@ -291,7 +300,7 @@ def test_cli(tmpdir):
     service = 'circle'
 
     environment = dict(os.environ)
-    environment[SERVICES_ENV_VAR[service]] = "true"
+    enable_service(service, environment)
 
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     environment['PYTHONPATH'] = root
@@ -321,7 +330,7 @@ def test_not_all_operating_system(tmpdir):
     service = 'travis'
 
     environment = dict(os.environ)
-    environment[SERVICES_ENV_VAR[service]] = "true"
+    enable_service(service, environment)
 
     environment["TRAVIS_OS_NAME"] = "linux"
 
@@ -353,7 +362,7 @@ def test_environment_persist(tmpdir, capfd):
     service = 'circle'
 
     environment = dict(os.environ)
-    environment[SERVICES_ENV_VAR[service]] = "true"
+    enable_service(service, environment)
 
     with push_dir(str(tmpdir)), push_env(**environment):
         execute_step("before_install")
@@ -383,7 +392,7 @@ def test_within_environment_expansion(tmpdir, capfd):
     service = 'circle'
 
     environment = dict(os.environ)
-    environment[SERVICES_ENV_VAR[service]] = "true"
+    enable_service(service, environment)
 
     environment["WHAT"] = "world"
     environment["STRING"] = "of \"wonders\""
@@ -425,7 +434,7 @@ def test_expand_environment(tmpdir, capfd):
     service = 'circle'
 
     environment = dict(os.environ)
-    environment[SERVICES_ENV_VAR[service]] = "true"
+    enable_service(service, environment)
 
     environment["SYMBOLS"] = "c;d;e"
 
