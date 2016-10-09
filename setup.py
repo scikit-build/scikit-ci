@@ -38,7 +38,7 @@ setup(
                 'for Python extensions.',
     long_description=readme + '\n\n' + history,
 
-    entry_points={'console_scripts': ['ci=ci.driver:main']},
+    entry_points={'console_scripts': ['ci=ci.__main__:main']},
 
     packages=['ci'],
     package_data={},

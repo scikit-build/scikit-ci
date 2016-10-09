@@ -266,10 +266,11 @@ def test_cli(tmpdir):
     environment = dict(os.environ)
     environment[SERVICES_ENV_VAR[service]] = "true"
 
-    driver_script = os.path.join(os.path.dirname(__file__), '../ci/driver.py')
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    environment['PYTHONPATH'] = root
 
     subprocess.check_call(
-        "python %s %s" % (driver_script, "install"),
+        "python -m ci install",
         shell=True,
         env=environment,
         stderr=subprocess.STDOUT,

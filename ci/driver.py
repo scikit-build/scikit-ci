@@ -7,12 +7,8 @@ import shlex
 import subprocess
 import sys
 
-from constants import SCIKIT_CI_CONFIG, SERVICES, STEPS
-
-try:
-    from . import utils
-except (SystemError, ValueError):
-    import utils
+from . import utils
+from .constants import SCIKIT_CI_CONFIG, SERVICES, STEPS
 
 POSIX_SHELL = True
 
@@ -225,23 +221,3 @@ def execute_step(step):
     d = Driver()
     with d.env_context():
         d.execute_commands(step)
-
-
-def main():
-    """The main entry point to ``ci.py``.
-
-    This is installed as the script entry point.
-    """
-
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("step", type=str, choices=STEPS,
-                        help="name of the step to execute")
-    args = parser.parse_args()
-
-    execute_step(args.step)
-
-
-if __name__ == "__main__":
-    main()
