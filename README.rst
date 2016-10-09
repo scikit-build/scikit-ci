@@ -6,6 +6,18 @@ scikit-ci
     :target: http://scikit-ci.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
+.. image:: https://ci.appveyor.com/api/projects/status/5to6lvgaqcrck675?svg=true
+    :target: https://ci.appveyor.com/project/scikit-build/scikit-ci/branch/master
+
+.. image:: https://circleci.com/gh/scikit-build/scikit-ci/tree/master.svg?style=svg
+    :target: https://circleci.com/gh/scikit-build/scikit-ci/tree/master
+
+.. image:: https://img.shields.io/travis/scikit-build/scikit-ci.svg?maxAge=2592000
+    :target: https://travis-ci.org/scikit-build/scikit-ci
+
+.. image:: https://codecov.io/gh/scikit-build/scikit-ci/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/scikit-build/scikit-ci
+
 scikit-ci enables a centralized and simpler CI configuration for Python
 extensions.
 
