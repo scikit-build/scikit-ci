@@ -1,4 +1,5 @@
 
+import errno
 import json
 import os
 import os.path
@@ -193,10 +194,10 @@ class Driver(object):
 
 def execute_step(step):
 
-    if not os.path.exists(SCIKIT_CI_CONFIG):
-        raise Exception("Couldn't find %s" % SCIKIT_CI_CONFIG)
+    if not os.path.exists(SCIKIT_CI_CONFIG):  # pragma: no cover
+        raise OSError(errno.ENOENT, "Couldn't find %s" % SCIKIT_CI_CONFIG)
 
-    if step not in STEPS:
+    if step not in STEPS:  # pragma: no cover
         raise KeyError("invalid stage: {}".format(step))
 
     d = Driver()
