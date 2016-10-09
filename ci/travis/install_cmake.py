@@ -31,15 +31,30 @@ def install(cmake_version=DEFAULT_CMAKE_VERSION, is_darwin=False):
     cmake_version_major = cmake_version.split(".")[0]
     cmake_version_minor = cmake_version.split(".")[1]
 
-    _log("Downloading", cmake_package)
-    check_call([
-        "wget", "--no-check-certificate", "--progress=dot",
-        "https://cmake.org/files/v{}.{}/{}".format(
-            cmake_version_major, cmake_version_minor, cmake_package)
-    ])
+    download_dir = os.environ["HOME"] + "/downloads"
+    downloaded_package = os.path.join(download_dir, cmake_package)
 
-    _log("Extracting", cmake_package)
-    check_call(["tar", "xzf", cmake_package])
+    if not os.path.exists(downloaded_package):
+
+        _log("Making directory: ", download_dir)
+        try:
+            os.mkdir(download_dir)
+        except OSError:
+            pass
+
+        _log("Downloading", cmake_package)
+        check_call([
+            "wget", "--no-check-certificate", "--progress=dot",
+            "https://cmake.org/files/v{}.{}/{}".format(
+                cmake_version_major, cmake_version_minor, cmake_package),
+            "-P", download_dir
+        ])
+
+    else:
+        _log("Skipping download: Found ", downloaded_package)
+
+    _log("Extracting", downloaded_package)
+    check_call(["tar", "xzf", downloaded_package, '-C', download_dir])
 
     if is_darwin:
         prefix = "/usr/local/bin"
@@ -54,14 +69,16 @@ def install(cmake_version=DEFAULT_CMAKE_VERSION, is_darwin=False):
         _log("Installing CMake in", prefix)
         check_call([
             "sudo",
-            cmake_name + "/CMake.app/Contents/bin/cmake-gui",
+            download_dir + "/" + cmake_name
+            + "/CMake.app/Contents/bin/cmake-gui",
             "--install"
         ])
 
     else:
-        _log("Copying", cmake_name, "to /usr/local")
+        _log("Copying", download_dir + "/" + cmake_name, "to /usr/local")
         check_call([
-            "sudo", "rsync", "-avz", cmake_name + "/", "/usr/local"])
+            "sudo", "rsync", "-avz",
+            download_dir + "/" + cmake_name + "/", "/usr/local"])
 
 
 if __name__ == '__main__':

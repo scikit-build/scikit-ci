@@ -39,28 +39,33 @@ def install(cmake_version=DEFAULT_CMAKE_VERSION):
 
     cmake_version_major = cmake_version.split(".")[0]
     cmake_version_minor = cmake_version.split(".")[1]
-
+    cmake_directory = "C:\\cmake-{}".format(cmake_version)
     cmake_package = "cmake-{}-win32-x86.zip".format(cmake_version)
 
-    _log("Downloading", cmake_package)
-    remote_file = urlopen(
-        "https://cmake.org/files/v{}.{}/{}".format(
-            cmake_version_major, cmake_version_minor, cmake_package))
+    if not os.path.exists(cmake_directory):
 
-    with open("C:\\%s" % cmake_package, "wb") as local_file:
-        shutil.copyfileobj(remote_file, local_file)
+        _log("Downloading", cmake_package)
+        remote_file = urlopen(
+            "https://cmake.org/files/v{}.{}/{}".format(
+                cmake_version_major, cmake_version_minor, cmake_package))
 
-    cmake_directory = "C:\\cmake"
-    _log("Making directory", cmake_directory)
-    try:
-        os.mkdir(cmake_directory)
-    except OSError:
-        pass
+        with open("C:\\%s" % cmake_package, "wb") as local_file:
+            shutil.copyfileobj(remote_file, local_file)
 
-    _log("Unpacking", cmake_package)
-    with zipfile.ZipFile("C:\\%s" % cmake_package) as local_zip:
-        local_zip.extractall(cmake_directory)
+        _log("Making directory", cmake_directory)
+        try:
+            os.mkdir(cmake_directory)
+        except OSError:
+            pass
 
+        _log("Unpacking", cmake_package)
+        with zipfile.ZipFile("C:\\%s" % cmake_package) as local_zip:
+            local_zip.extractall(cmake_directory)
+
+    else:
+        _log("Skipping download: Directory %s exists" % cmake_package)
+
+    _log("Updating PATH with", cmake_directory)
     _env_prepend("PATH", "%s\bin" % cmake_directory)
 
 

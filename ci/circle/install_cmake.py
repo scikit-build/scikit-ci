@@ -10,7 +10,7 @@ Usage::
 import os
 import sys
 
-from subprocess import check_call
+from subprocess import check_call, check_output
 
 DEFAULT_CMAKE_VERSION = "3.5.0"
 
@@ -23,6 +23,15 @@ def _log(*args):
 
 def install(cmake_version=DEFAULT_CMAKE_VERSION):
     """Download and install CMake into ``/usr/local``."""
+
+    cmake_directory = "/usr/local"
+
+    cmake_exe = os.path.join(cmake_directory, 'bin/cmake')
+
+    if (os.path.exists(cmake_exe)
+            and check_output([cmake_exe, '--version']) == cmake_version):
+        _log("Skipping download: Found %s (v%s)" % (cmake_exe, cmake_version))
+        return
 
     name = "cmake-{}-Linux-x86_64".format(cmake_version)
 
@@ -44,7 +53,7 @@ def install(cmake_version=DEFAULT_CMAKE_VERSION):
 
     _log("Installing", name)
     check_call([
-        "sudo", "rsync", "-avz", name + "/", "/usr/local"
+        "sudo", "rsync", "-avz", name + "/", cmake_directory
     ])
 
 
