@@ -67,7 +67,7 @@ def _generate_scikit_yml_content():
             - python -c 'import os; print("%s" % os.environ["WHAT"])'
             - python -c "import os; print('expand:%s' % \"$<WHAT>\")"
             - python -c 'import os; print("expand-2:%s" % "$<WHAT>")'
-            - python --version
+            - python -c 'import sys; print("%s.%s.%s" % sys.version_info[:3])'
 
           appveyor:
             environment:
@@ -154,8 +154,8 @@ def test_driver(service, tmpdir, capfd):
                 assert output_lines[3] == "expand: %s" % step
                 assert output_lines[5] == "expand-2:%s" % (
                     step if service == 'appveyor' else "$<WHAT>")
-                assert error_lines[0] == "Python %s" % sys.version.split()[0]
-                assert output_lines[8] == second_line
+                assert output_lines[7] == "%s.%s.%s" % sys.version_info[:3]
+                assert output_lines[9] == second_line
             except AssertionError as error:
                 context = service + (("-" + system) if system else "")
                 print("\n[%s: %s]" % (context, step))
