@@ -172,9 +172,7 @@ def test_driver(service, tmpdir, capfd):
                 if sys.version_info[0] > 2:
                     raise error.with_traceback(sys.exc_info()[2])
                 else:
-                    raise (sys.exc_info()[0],
-                           sys.exc_info()[1],
-                           sys.exc_info()[2])
+                    raise
 
 
 def test_shell_command(tmpdir, capfd):
