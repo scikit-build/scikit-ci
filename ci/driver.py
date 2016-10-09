@@ -10,15 +10,6 @@ import sys
 from . import utils
 from .constants import SCIKIT_CI_CONFIG, SERVICES, STEPS
 
-POSIX_SHELL = True
-
-SERVICES_SHELL_CONFIG = {
-    'appveyor-None': not POSIX_SHELL,
-    'circle-None': POSIX_SHELL,
-    'travis-linux': POSIX_SHELL,
-    'travis-osx': POSIX_SHELL,
-}
-
 
 class DriverContext(object):
     def __init__(self, driver, env_file="env.json"):
@@ -71,22 +62,13 @@ class Driver(object):
 
     def check_call(self, *args, **kwds):
         kwds["env"] = kwds.get("env", self.env)
+        kwds["shell"] = True
 
         if "COMSPEC" in os.environ:
-            cmd_exe = ["cmd.exe", "/E:ON", "/V:ON", "/C"]
+            cmd = "cmd.exe /E:ON /V:ON /C \"%s\"" % args[0]
+            args = [cmd]
 
-            # Format the list of arguments appropriately for display. When
-            # formatting a command and its arguments, the user should be able
-            # to execute the command by copying and pasting the output directly
-            # into a shell.
-            self.log("[scikit-ci] Executing: %s \"%s\"" % (
-                ' '.join(cmd_exe), args[0]))
-
-            args = [cmd_exe + [args[0]]]
-
-        else:
-            kwds["shell"] = True
-            self.log("[scikit-ci] Executing: %s" % args[0])
+        self.log("[scikit-ci] Executing: %s" % args[0])
         return subprocess.check_call(*args, **kwds)
 
     def env_context(self, env_file="env.json"):
@@ -200,8 +182,7 @@ class Driver(object):
                 value = value.replace(old, new)
             self.env[name] = value
 
-        posix_shell = SERVICES_SHELL_CONFIG['{}-{}'.format(
-            service_name, utils.current_operating_system(service_name))]
+        posix_shell = "COMSPEC" not in os.environ
 
         for cmd in commands:
             # Expand environment variables used within commands

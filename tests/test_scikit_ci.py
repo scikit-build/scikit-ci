@@ -83,7 +83,7 @@ def scikit_steps(tmpdir, service):
             yield step, system, environment
 
 
-def _generate_scikit_yml_content():
+def _generate_scikit_yml_content(service):
     template_step = (
         r"""
         {what}:
@@ -91,34 +91,34 @@ def _generate_scikit_yml_content():
           environment:
             WHAT: {what}
           commands:
-            - python -c 'import os; print("%s" % os.environ["WHAT"])'
-            - python -c "import os; print('expand:%s' % \"$<WHAT>\")"
-            - python -c 'import os; print("expand-2:%s" % "$<WHAT>")'
-            - python -c 'import sys; print("%s.%s.%s" % sys.version_info[:3])'
+            - python -c "import os; print('%s' % os.environ['WHAT'])"
+            {command_0}
+            {command_1}
+            - python -c "import sys; print('%s.%s.%s' % sys.version_info[:3])"
 
           appveyor:
             environment:
               SERVICE: appveyor
             commands:
-              - python -c 'import os; print("%s / %s" % (os.environ["WHAT"], os.environ["SERVICE"]))'
+              - python -c "import os; print('%s / %s' % (os.environ['WHAT'], os.environ['SERVICE']))"
 
           circle:
             environment:
               SERVICE: circle
             commands:
-              - python -c 'import os; print("%s / %s" % (os.environ["WHAT"], os.environ["SERVICE"]))'
+              - python -c "import os; print('%s / %s' % (os.environ['WHAT'], os.environ['SERVICE']))"
 
           travis:
             linux:
               environment:
                 SERVICE: travis-linux
               commands:
-                - python -c 'import os; print("%s / %s / %s" % (os.environ["WHAT"], os.environ["SERVICE"], os.environ["TRAVIS_OS_NAME"]))'
+                - python -c "import os; print('%s / %s / %s' % (os.environ['WHAT'], os.environ['SERVICE'], os.environ['TRAVIS_OS_NAME']))"
             osx:
               environment:
                 SERVICE: travis-osx
               commands:
-                - python -c 'import os; print("%s / %s / %s" % (os.environ["WHAT"], os.environ["SERVICE"], os.environ["TRAVIS_OS_NAME"]))'
+                - python -c "import os; print('%s / %s / %s' % (os.environ['WHAT'], os.environ['SERVICE'], os.environ['TRAVIS_OS_NAME']))"
         """  # noqa: E501
     )
 
@@ -129,9 +129,23 @@ def _generate_scikit_yml_content():
         """
     )
 
+    if "COMSPEC" in os.environ:
+        commands = [
+            r"""- python -c "import os; print('expand:%s' % '$<WHAT>')" """,
+            r"""- python -c "import os; print('expand-2:%s' % '$<WHAT>')" """
+            ]
+    else:
+        commands = [
+            r"""- python -c "import os; print('expand:%s' % \"$<WHAT>\")" """,
+            r"""- python -c 'import os; print("expand-2:%s" % "$<WHAT>")' """
+            ]
+
     return textwrap.dedent(template).format(
             "".join(
-                [textwrap.dedent(template_step).format(what=step) for step in
+                [textwrap.dedent(template_step).format(
+                    what=step,
+                    command_0=commands[0],
+                    command_1=commands[1]) for step in
                  ['before_install',
                   'install',
                   'before_build',
@@ -147,7 +161,7 @@ def _generate_scikit_yml_content():
 def test_driver(service, tmpdir, capfd):
 
     tmpdir.join('scikit-ci.yml').write(
-        _generate_scikit_yml_content()
+        _generate_scikit_yml_content(service)
     )
 
     outputs = []
@@ -172,7 +186,7 @@ def test_driver(service, tmpdir, capfd):
                 assert output_lines[1] == "%s" % step
                 assert output_lines[3] == "expand: %s" % step
                 assert output_lines[5] == "expand-2:%s" % (
-                    step if service == 'appveyor' else "$<WHAT>")
+                    step if "COMSPEC" in os.environ else "$<WHAT>")
                 assert output_lines[7] == "%s.%s.%s" % sys.version_info[:3]
                 assert output_lines[9] == second_line
             except AssertionError as error:
