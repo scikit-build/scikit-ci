@@ -15,7 +15,7 @@ def main():
 
     import argparse
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=ci.__doc__)
     parser.add_argument(
         "step", type=str, choices=ci.STEPS,
         help="name of the step to execute")
