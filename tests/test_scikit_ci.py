@@ -18,6 +18,24 @@ HAS_COMSPEC = "COMSPEC" in os.environ
 SCHEMA_VERSION = "0.5.0"
 
 
+def setup_function(function):
+    """ setup any state tied to the execution of the given function.
+    Invoked for every test function in the module.
+    """
+    print("setup_function: %s" % function)
+    print("current dir: %s" % os.getcwd())
+    p = os.path.join(os.getcwd(), "env.json")
+    if os.path.exists(p):
+        raise Exception("Found %s before running %s" % (p, function.__name__))
+
+
+def teardown_function(function):
+    """ teardown any state that was previously setup with a setup_function
+    call.
+    """
+    # print("teardown_function: %s" % function)
+
+
 def enable_service(service, environment=os.environ, operating_system=None):
     """Ensure ``service`` is enabled.
 
