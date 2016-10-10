@@ -4,8 +4,7 @@
 Ci command line tool (enable python -m ci syntax)
 """
 
-from .constants import STEPS
-from .driver import execute_step
+import ci
 
 
 def main():
@@ -17,11 +16,12 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("step", type=str, choices=STEPS,
-                        help="name of the step to execute")
+    parser.add_argument(
+        "step", type=str, choices=ci.STEPS,
+        help="name of the step to execute")
     args = parser.parse_args()
 
-    execute_step(args.step)
+    ci.execute_step(args.step)
 
 
 if __name__ == '__main__':
