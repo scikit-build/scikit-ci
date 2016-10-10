@@ -6,7 +6,6 @@ Ci command line tool (enable python -m ci syntax)
 
 import ci
 import os
-import sys
 
 
 def main():
