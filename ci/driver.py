@@ -7,10 +7,13 @@ import errno
 import json
 import os
 import os.path
+import re
 import ruamel.yaml
 import shlex
 import subprocess
 import sys
+
+from ruamel.ordereddict import ordereddict
 
 from . import utils
 from .constants import SCIKIT_CI_CONFIG, SERVICES, STEPS
@@ -80,18 +83,78 @@ class Driver(object):
         return DriverContext(self, env_file)
 
     @staticmethod
-    def expand_environment_vars(text, environments):
-        """Return an updated ``command`` string where all occurrences of
-        ``$<EnvironmentVarName>`` (with a corresponding env variable set) have
-        been replaced.
+    def expand_environment_vars(text, environment):
+        """Return an updated ``text`` string where all occurrences of
+        ``$<EnvironmentVarName>`` that were found in ``environment``
+        have been replaced.
         """
-
-        for name, value in environments.items():
+        for name, value in environment.items():
             text = text.replace(
                 "$<%s>" % name,
                 value.replace("\\", "\\\\").replace("\"", "\\\""))
-
         return text
+
+    ENV_VAR_REGEX = re.compile(r"\$<[\w\d][\w\d_]*>", re.IGNORECASE)
+    """Regular expression matching legal environment variable of the
+    form ``$<EnvironmentVarName>``"""
+
+    @staticmethod
+    def recursively_expand_environment_vars(step_env, global_env=None):
+        """This function will recursively expand all occurrences of
+        ``$<EnvironmentVarName>`` found in any of the ``step_env``
+        values.
+
+        Only ``step_env`` is updated.
+        """
+
+        if global_env is None:
+            global_env = step_env
+
+        # Keep track of variables that still need to be expanded
+        to_be_expanded = set()
+
+        def _expand(names, _work_env, _global_env=None):
+            if _global_env is None:
+                _global_env = _work_env
+            for env_var_name in names:
+                # Get the value
+                env_var_value = _work_env[env_var_name]
+
+                # Attempt to expand the value
+                _work_env[env_var_name] = Driver.expand_environment_vars(
+                    env_var_value, _global_env)
+
+                # Keep track of variable name not yet expanded
+                if re.match(Driver.ENV_VAR_REGEX, _work_env[env_var_name]):
+                    to_be_expanded.add(env_var_name)
+                else:
+                    # If there are no more variable to expand, remove it
+                    # from the list.
+                    if env_var_name in to_be_expanded:
+                        to_be_expanded.remove(env_var_name)
+
+        # Expand step env values referencing global env variables
+        _expand(step_env.keys(), step_env, global_env)
+
+        # Create a "working" environment by merging step environment
+        # into the global environment
+        work_env = ordereddict(global_env, relax=True)
+        work_env.update(step_env)
+
+        # Expand variables
+        _expand(step_env.keys(), work_env)
+
+        # Expand remaining variables if any
+        to_be_expanded_count = len(to_be_expanded)
+        while to_be_expanded:
+            _expand(to_be_expanded, work_env)
+            if to_be_expanded_count == len(to_be_expanded):
+                break
+            to_be_expanded_count = len(to_be_expanded)
+
+        # Update step environment
+        for name in step_env:
+            step_env[name] = work_env[name]
 
     @staticmethod
     def expand_command(command, environments, posix_shell=True):
@@ -148,6 +211,10 @@ class Driver(object):
             environment = stage.get("environment", {})
             commands = stage.get("commands", [])
 
+            # Expand all occurrences of ``$<EnvironmentVarName>`` found
+            # in common environment values.
+            Driver.recursively_expand_environment_vars(environment, global_env)
+
             if service_name in stage:
                 system = stage[service_name]
 
@@ -156,11 +223,18 @@ class Driver(object):
                     operating_system = global_env[SERVICES[service_name]]
                     system = system.get(operating_system, {})
 
-                # if any, set service specific environment
+                # if any, get service specific environment
                 system_environment = system.get("environment", {})
-                for name, value in system_environment.items():
-                    environment[name] = Driver.expand_environment_vars(
-                        value, environment)
+
+                # Create merged environment
+                tmp_env = dict(global_env)
+                tmp_env.update(environment)
+                # Expand system environment values
+                Driver.recursively_expand_environment_vars(
+                    system_environment, tmp_env)
+                # Merge system specific variable back into common ones
+                environment.update(system_environment)
+
                 # ... and append commands
                 commands += system.get("commands", [])
 
@@ -180,12 +254,9 @@ class Driver(object):
                              "CI service (e.g appveyor, circle or travis.")
 
         environment["CI_NAME"] = service_name
+        Driver.recursively_expand_environment_vars(environment)
 
-        # Expand stage environment variables
-        for name, value in environment.items():
-            environment[name] = self.expand_environment_vars(value, self.env)
-
-        # Merge stage environment variables with global environment
+        # Merge stage environment into the global one
         self.env.update(environment)
 
         # Unescape environment variables
