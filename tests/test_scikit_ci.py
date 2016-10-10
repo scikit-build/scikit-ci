@@ -18,6 +18,24 @@ HAS_COMSPEC = "COMSPEC" in os.environ
 SCHEMA_VERSION = "0.5.0"
 
 
+def setup_function(function):
+    """ setup any state tied to the execution of the given function.
+    Invoked for every test function in the module.
+    """
+    print("setup_function: %s" % function)
+    print("current dir: %s" % os.getcwd())
+    p = os.path.join(os.getcwd(), "env.json")
+    if os.path.exists(p):
+        raise Exception("Found %s before running %s" % (p, function.__name__))
+
+
+def teardown_function(function):
+    """ teardown any state that was previously setup with a setup_function
+    call.
+    """
+    # print("teardown_function: %s" % function)
+
+
 def enable_service(service, environment=os.environ, operating_system=None):
     """Ensure ``service`` is enabled.
 
@@ -487,3 +505,152 @@ def test_expand_environment(tmpdir, capfd):
 
     assert output_lines[1] == "before_install [a;b;c;d;e]"
     assert output_lines[3] == "install [8;9;a;b;c;d;e]"
+
+
+def recursively_expand_environment_vars_data():
+    from ruamel.ordereddict import ordereddict
+
+    def case_1():
+        """All variables to expand are in ``step_env``
+        """
+        global_env = ordereddict()
+
+        step_env = ordereddict()
+        step_env['C'] = '$<B>'
+        step_env['B'] = '$<A>'
+        step_env['A'] = 'Hello'
+
+        expected_step_env = ordereddict()
+        expected_step_env['C'] = 'Hello'
+        expected_step_env['B'] = 'Hello'
+        expected_step_env['A'] = 'Hello'
+
+        return step_env, global_env, expected_step_env
+
+    def case_2():
+        """Variable to expand are spread across ``step_env`` and ``global_env``.
+        """
+        global_env = ordereddict()
+        global_env['B'] = '$<A>'
+
+        step_env = ordereddict()
+        step_env['C'] = '$<B>'
+        step_env['A'] = 'Hello'
+
+        expected_step_env = ordereddict()
+        expected_step_env['C'] = 'Hello'
+        expected_step_env['A'] = 'Hello'
+
+        return step_env, global_env, expected_step_env
+
+    def case_3():
+        """Variable to expand are spread across ``step_env`` and ``global_env``
+        with one of ``step_env`` variable that can not be expanded.
+        """
+        global_env = ordereddict()
+        global_env['D'] = '$<C>'
+        global_env['C'] = 'Ciao'
+        global_env['G'] = '$<F>'
+
+        step_env = ordereddict()
+        step_env['H'] = '$<G>'
+        step_env['E'] = '$<D>'
+        step_env['B'] = '$<A>'
+        step_env['A'] = 'Hello'
+
+        expected_step_env = ordereddict()
+        expected_step_env['H'] = '$<F>'
+        expected_step_env['E'] = 'Ciao'
+        expected_step_env['B'] = 'Hello'
+        expected_step_env['A'] = 'Hello'
+
+        return step_env, global_env, expected_step_env
+
+    def case_4():
+        """"""
+
+        global_env = ordereddict()
+        global_env["A"] = "0"
+
+        step_env = ordereddict()
+        step_env["A"] = "1$<A>"
+
+        expected_step_env = ordereddict()
+        expected_step_env['A'] = '10'
+
+        return step_env, global_env, expected_step_env
+
+    return [
+        case_1(),
+        case_2(),
+        case_3(),
+        case_4()
+    ]
+
+
+@pytest.mark.parametrize("step_env, global_env, expected_step_env",
+                         recursively_expand_environment_vars_data()
+                         )
+def test_recursively_expand_environment_vars(
+        step_env, global_env, expected_step_env):
+
+    print("")
+
+    global_env_size = len(global_env)
+    step_env_size = len(step_env)
+
+    Driver.recursively_expand_environment_vars(step_env, global_env)
+
+    assert len(global_env) == global_env_size
+    assert len(step_env) == step_env_size
+
+    assert step_env == expected_step_env
+
+
+def test_ci_name_environment_variable(tmpdir, capfd):
+    quote = "" if HAS_COMSPEC else "\""
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "{version}"
+        before_install:
+          environment:
+            FOO: $<CI_NAME>
+          commands:
+            - echo {quote}ci_name [$<CI_NAME>] foo [$<FOO>]{quote}
+        """
+    ).format(quote=quote, version=SCHEMA_VERSION))
+    service = 'circle'
+
+    environment = dict(os.environ)
+    enable_service(service, environment)
+
+    with push_dir(str(tmpdir)), push_env(**environment):
+        execute_step("before_install")
+        output_lines, _ = captured_lines(capfd)
+
+    assert output_lines[1] == "ci_name [%s] foo [%s]" % (service, service)
+
+
+def test_ci_name_reserved_environment_variable(tmpdir):
+    quote = "" if HAS_COMSPEC else "\""
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "{version}"
+        before_install:
+          environment:
+            CI_NAME: foo
+        """
+    ).format(quote=quote, version=SCHEMA_VERSION))
+    service = 'circle'
+
+    environment = dict(os.environ)
+    enable_service(service, environment)
+
+    failed = False
+    try:
+        with push_dir(str(tmpdir)), push_env(**environment):
+            execute_step("before_install")
+    except ValueError:
+        failed = True
+
+    assert failed
