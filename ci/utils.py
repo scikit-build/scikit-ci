@@ -11,9 +11,8 @@ except (SystemError, ValueError):
 
 
 def current_service():
-    for service in SERVICES.keys():
-        if os.environ.get(
-                SERVICES_ENV_VAR[service], 'false').lower() == 'true':
+    for service, env_var in SERVICES_ENV_VAR.items():
+        if os.environ.get(env_var, 'false').lower() == 'true':
             return service
     raise LookupError(
         "unknown service: None of the environment variables {} are set "
