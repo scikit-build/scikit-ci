@@ -5,6 +5,7 @@ machine:
   post:
     - git clone git://github.com/scikit-build/scikit-ci bootstrap-scikit-ci
 
+# scikit-ci-yml.rst: start
 dependencies:
   pre:
     - |
@@ -30,3 +31,5 @@ deployment:
     branch: master
     commands:
       - ci after_test
+
+# scikit-ci-yml.rst: end

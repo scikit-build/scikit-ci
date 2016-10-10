@@ -11,7 +11,7 @@ extensions.
 
 By having ``appveyor.yml``, ``circle.yml`` and ``.travis.yml`` calling
 the scikit-ci command-line executable, all the CI steps for all
-service can be fully described in one ``scikit-ci.yml`` file.
+service can be fully described in one ``scikit-ci.yml`` configuration file.
 
 .. toctree::
    :maxdepth: 2
@@ -19,6 +19,7 @@ service can be fully described in one ``scikit-ci.yml`` file.
 
    installation
    usage
+   scikit-ci-yml.rst
    contributing
    authors
    history

@@ -44,6 +44,7 @@ before_install:
     pip install -r ../boostrap-scikit-ci/requirements.txt
     pip install  ../boostrap-scikit-ci
 
+# scikit-ci-yml.rst: start
 install:
   - ci before_install
   - ci install
@@ -57,3 +58,4 @@ script:
 
 after_success:
   - ci after_test
+# scikit-ci-yml.rst: end
