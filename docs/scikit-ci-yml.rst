@@ -201,6 +201,13 @@ The output on the different service will be the following:
     CATEGORY_2 is 2
 
 
+Reserved Environment Variables
+------------------------------
+
+  - ``CI_NAME``:  This variable is automatically set by scikit-ci and will
+    contain the name of the continuous integration service currently executing
+    the step.
+
 Environment variable usage
 --------------------------
 

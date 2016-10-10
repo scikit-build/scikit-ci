@@ -487,3 +487,52 @@ def test_expand_environment(tmpdir, capfd):
 
     assert output_lines[1] == "before_install [a;b;c;d;e]"
     assert output_lines[3] == "install [8;9;a;b;c;d;e]"
+
+
+def test_ci_name_environment_variable(tmpdir, capfd):
+    quote = "" if HAS_COMSPEC else "\""
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "{version}"
+        before_install:
+          environment:
+            FOO: $<CI_NAME>
+          commands:
+            - echo {quote}ci_name [$<CI_NAME>] foo [$<FOO>]{quote}
+        """
+    ).format(quote=quote, version=SCHEMA_VERSION))
+    service = 'circle'
+
+    environment = dict(os.environ)
+    enable_service(service, environment)
+
+    with push_dir(str(tmpdir)), push_env(**environment):
+        execute_step("before_install")
+        output_lines, _ = captured_lines(capfd)
+
+    assert output_lines[1] == "ci_name [%s] foo [%s]" % (service, service)
+
+
+def test_ci_name_reserved_environment_variable(tmpdir):
+    quote = "" if HAS_COMSPEC else "\""
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "{version}"
+        before_install:
+          environment:
+            CI_NAME: foo
+        """
+    ).format(quote=quote, version=SCHEMA_VERSION))
+    service = 'circle'
+
+    environment = dict(os.environ)
+    enable_service(service, environment)
+
+    failed = False
+    try:
+        with push_dir(str(tmpdir)), push_env(**environment):
+            execute_step("before_install")
+    except ValueError:
+        failed = True
+
+    assert failed

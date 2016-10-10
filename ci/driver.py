@@ -173,6 +173,14 @@ class Driver(object):
         environment, commands = self.parse_config(
             SCIKIT_CI_CONFIG, stage_name, service_name, self.env)
 
+        # Check if reserved variable are used
+        if "CI_NAME" in environment:
+            raise ValueError("CI_NAME environment variable can not be set. "
+                             "It is reserved to store the name of the current "
+                             "CI service (e.g appveyor, circle or travis.")
+
+        environment["CI_NAME"] = service_name
+
         # Expand stage environment variables
         for name, value in environment.items():
             environment[name] = self.expand_environment_vars(value, self.env)
