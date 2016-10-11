@@ -80,17 +80,14 @@ class Driver(object):
         return DriverContext(self, env_file)
 
     @staticmethod
-    def expand_environment_vars(text, environments):
-        """Return an updated ``command`` string where all occurrences of
-        ``$<EnvironmentVarName>`` (with a corresponding env variable set) have
-        been replaced.
+    def expand_environment_vars(text, environment):
+        """Return an updated ``text`` string where all occurrences of
+        ``$<EnvironmentVarName>`` found in ``environment`` are replaced.
         """
-
-        for name, value in environments.items():
+        for name, value in environment.items():
             text = text.replace(
                 "$<%s>" % name,
                 value.replace("\\", "\\\\").replace("\"", "\\\""))
-
         return text
 
     @staticmethod
