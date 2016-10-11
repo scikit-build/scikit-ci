@@ -187,17 +187,30 @@ class Driver(object):
         return "\n".join(expanded_lines)
 
     @staticmethod
+    def _raise_if_setting_ci_name(environment):
+        # Check if reserved variable are used
+        if "CI_NAME" in environment:
+            raise ValueError("CI_NAME environment variable can not be set. "
+                             "It is reserved to store the name of the current "
+                             "CI service (e.g appveyor, circle or travis.")
+
+    @staticmethod
     def parse_config(config_file, stage_name, service_name, global_env):
         with open(config_file) as input_stream:
             data = ruamel.yaml.load(input_stream, ruamel.yaml.RoundTripLoader)
+
         commands = []
         environment = {}
+
         if stage_name in data:
             stage = data[stage_name]
 
             # common to all services
             environment = stage.get("environment", {})
             commands = stage.get("commands", [])
+
+            # Sanity checks
+            Driver._raise_if_setting_ci_name(environment)
 
             # Expand all occurrences of ``$<EnvironmentVarName>``.
             Driver.recursively_expand_environment_vars(environment, global_env)
@@ -213,12 +226,16 @@ class Driver(object):
                 # if any, get service specific environment
                 system_environment = system.get("environment", {})
 
+                # Sanity checks
+                Driver._raise_if_setting_ci_name(environment)
+
                 # Expand system environment values
                 Driver.recursively_expand_environment_vars(
                     system_environment, global_env)
 
                 # Merge system environment variable back into environment
                 environment.update(system_environment)
+
                 # ... and append commands
                 commands += system.get("commands", [])
 
@@ -227,6 +244,8 @@ class Driver(object):
     def execute_commands(self, stage_name):
 
         service_name = utils.current_service()
+
+        self.env["CI_NAME"] = service_name
 
         environment, commands = self.parse_config(
             SCIKIT_CI_CONFIG, stage_name, service_name, self.env)
