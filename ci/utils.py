@@ -4,10 +4,7 @@
 
 import os
 
-try:
-    from .constants import SERVICES, SERVICES_ENV_VAR
-except (SystemError, ValueError):
-    from constants import SERVICES, SERVICES_ENV_VAR
+from .constants import SERVICES, SERVICES_ENV_VAR
 
 
 def current_service():
