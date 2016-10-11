@@ -13,9 +13,9 @@ before_install:
   travis:
     osx:
       environment:
-        RUN_ENV: ci/travis/run-with-pyenv.sh
+        RUN_ENV: ../ci/travis/run-with-pyenv.sh
       commands:
-        - python ci/travis/install_pyenv.py
+        - python ../ci/travis/install_pyenv.py
 
 install:
 

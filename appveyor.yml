@@ -49,7 +49,6 @@ init:
 
   - |
     git clone git://github.com/scikit-build/scikit-ci ../bootstrap-scikit-ci
-    python.exe -m pip install -r ../bootstrap-scikit-ci/requirements.txt
     python.exe -m pip install ../bootstrap-scikit-ci/
 
 # scikit-ci-yml.rst: start
