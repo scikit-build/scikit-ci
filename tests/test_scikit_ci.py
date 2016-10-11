@@ -6,6 +6,8 @@ import subprocess
 import sys
 import textwrap
 
+from ruamel.yaml.compat import ordereddict
+
 from . import captured_lines, display_captured_text, push_dir, push_env
 from ci.constants import SERVICES, SERVICES_ENV_VAR
 from ci.driver import Driver, execute_step
@@ -487,3 +489,108 @@ def test_expand_environment(tmpdir, capfd):
 
     assert output_lines[1] == "before_install [a;b;c;d;e]"
     assert output_lines[3] == "install [8;9;a;b;c;d;e]"
+
+
+def recursively_expand_environment_vars_data():
+
+    def case_1():
+        """All variables to expand are in ``step_env``
+        """
+        global_env = ordereddict()
+
+        step_env = ordereddict()
+        step_env['C'] = '$<B>'
+        step_env['B'] = '$<A>'
+        step_env['A'] = 'Hello'
+
+        expected_step_env = ordereddict()
+        expected_step_env['C'] = 'Hello'
+        expected_step_env['B'] = 'Hello'
+        expected_step_env['A'] = 'Hello'
+
+        expected_global_env_size = 3
+
+        return step_env, global_env, expected_step_env, expected_global_env_size
+
+    def case_2():
+        """Variable to expand are spread across ``step_env`` and ``global_env``.
+        """
+        global_env = ordereddict()
+        global_env['B'] = '$<A>'
+
+        step_env = ordereddict()
+        step_env['C'] = '$<B>'
+        step_env['A'] = 'Hello'
+
+        expected_step_env = ordereddict()
+        expected_step_env['C'] = 'Hello'
+        expected_step_env['A'] = 'Hello'
+
+        expected_global_env_size = 3
+
+        return step_env, global_env, expected_step_env, expected_global_env_size
+
+    def case_3():
+        """Variable to expand are spread across ``step_env`` and ``global_env``
+        with one of ``step_env`` variable that can not be expanded.
+        """
+        global_env = ordereddict()
+        global_env['D'] = '$<C>'
+        global_env['C'] = 'Ciao'
+        global_env['G'] = '$<F>'
+
+        step_env = ordereddict()
+        step_env['H'] = '$<G>'
+        step_env['E'] = '$<D>'
+        step_env['B'] = '$<A>'
+        step_env['A'] = 'Hello'
+
+        expected_step_env = ordereddict()
+        expected_step_env['H'] = '$<F>'
+        expected_step_env['E'] = 'Ciao'
+        expected_step_env['B'] = 'Hello'
+        expected_step_env['A'] = 'Hello'
+
+        expected_global_env_size = 7
+
+        return step_env, global_env, expected_step_env, expected_global_env_size
+
+    def case_4():
+        """"""
+
+        global_env = ordereddict()
+        global_env["A"] = "0"
+
+        step_env = ordereddict()
+        step_env["A"] = "1$<A>"
+
+        expected_step_env = ordereddict()
+        expected_step_env['A'] = '10'
+
+        expected_global_env_size = 1
+
+        return step_env, global_env, expected_step_env, expected_global_env_size
+
+    return [
+        case_1(),
+        case_2(),
+        case_3(),
+        case_4()
+    ]
+
+
+@pytest.mark.parametrize(
+    "step_env, global_env, expected_step_env,expected_global_env_size",
+    recursively_expand_environment_vars_data()
+)
+def test_recursively_expand_environment_vars(
+        step_env, global_env, expected_step_env, expected_global_env_size):
+
+    step_env_size = len(step_env)
+
+    Driver.recursively_expand_environment_vars(step_env, global_env)
+
+    assert len(global_env) == expected_global_env_size
+    assert len(step_env) == step_env_size
+
+    assert step_env == expected_step_env
