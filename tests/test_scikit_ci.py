@@ -400,10 +400,8 @@ def test_environment_persist(tmpdir, capfd):
     ).format(quote=quote, version=SCHEMA_VERSION))
     service = 'circle'
 
-    environment = dict(os.environ)
-    enable_service(service, environment)
-
-    with push_dir(str(tmpdir)), push_env(**environment):
+    with push_dir(str(tmpdir)), push_env():
+        enable_service(service)
         execute_step("before_install")
         execute_step("install")
         output_lines, _ = captured_lines(capfd)
@@ -477,12 +475,8 @@ def test_expand_environment(tmpdir, capfd):
     ).format(quote=quote, version=SCHEMA_VERSION))
     service = 'circle'
 
-    environment = dict(os.environ)
-    enable_service(service, environment)
-
-    environment["SYMBOLS"] = "c;d;e"
-
-    with push_dir(str(tmpdir)), push_env(**environment):
+    with push_dir(str(tmpdir)), push_env(SYMBOLS="c;d;e"):
+        enable_service(service)
         execute_step("before_install")
         execute_step("install")
         output_lines, _ = captured_lines(capfd)
@@ -610,10 +604,8 @@ def test_ci_name_environment_variable(tmpdir, capfd):
     ).format(quote=quote, version=SCHEMA_VERSION))
     service = 'circle'
 
-    environment = dict(os.environ)
-    enable_service(service, environment)
-
-    with push_dir(str(tmpdir)), push_env(**environment):
+    with push_dir(str(tmpdir)), push_env():
+        enable_service(service)
         execute_step("before_install")
         output_lines, _ = captured_lines(capfd)
 
