@@ -138,7 +138,7 @@ html_theme = 'default'
 # The name for this set of Sphinx documents.
 # "<project> v<release> documentation" by default.
 #
-# html_title = u'scikit-ci v0.5.0'
+# html_title = u'scikit-ci v%s' % version
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 #
