@@ -9,6 +9,7 @@ include pytest.ini
 include README.rst
 include requirements.txt
 include requirements-dev.txt
+include requirements-docs.txt
 
 recursive-include tests *
 recursive-exclude * __pycache__
