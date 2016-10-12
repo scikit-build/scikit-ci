@@ -30,10 +30,14 @@ structure:
       - echo "Hello world"
 
 
-where ``before_install`` can be any of these:
+where ``before_install`` can be replaced by any of these:
 
-.. automodule:: ci.constants
-   :members: STEPS
+- before_install
+- install
+- before_build
+- build
+- test
+- after_test
 
 
 .. _step_mapping:
