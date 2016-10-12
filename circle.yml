@@ -10,18 +10,14 @@ dependencies:
   pre:
     - pip install ../bootstrap-scikit-ci/
 
-    - ci before_install
   override:
+    - ci before_install
     - ci install
 
 test:
-  pre:
-    - ci before_build
-
   override:
+    - ci before_build
     - ci build
-
-  post:
     - ci test
 
 deployment:
