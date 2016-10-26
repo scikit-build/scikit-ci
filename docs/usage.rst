@@ -3,8 +3,22 @@ Usage
 =====
 
 The scikit-ci command line executable allows to execute commands associated
-with steps described in a ``scikit-ci.yml`` configuration file.
+with steps described in a scikit-ci
+:doc:`configuration file </scikit-ci-yml>`.
 
+
+
+Executing scikit-ci steps
+---------------------------------
+
+By default, invoking scikit-ci will execute all steps listed in
+scikit-ci :doc:`configuration file </scikit-ci-yml>`::
+
+    ci
+
+You can also specify one or multiple steps::
+
+    ci before_install install
 
 
 Calling scikit-ci through ``python -m ci``
