@@ -356,6 +356,38 @@ def test_cli(tmpdir):
     assert tmpdir.join("install-done").exists()
 
 
+def test_cli_multiple_steps(tmpdir):
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "{version}"
+        before_install:
+          commands:
+            - "python -c \"with open('before_install-done', 'w') as file: file.write('')\""
+        install:
+          commands:
+            - "python -c \"with open('install-done', 'w') as file: file.write('')\""
+        """  # noqa: E501
+    ).format(version=SCHEMA_VERSION))
+    service = 'circle'
+
+    environment = dict(os.environ)
+    enable_service(service, environment)
+
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    environment['PYTHONPATH'] = root
+
+    subprocess.check_call(
+        "python -m ci before_install install",
+        shell=True,
+        env=environment,
+        stderr=subprocess.STDOUT,
+        cwd=str(tmpdir)
+    )
+
+    assert tmpdir.join("before_install-done").exists()
+    assert tmpdir.join("install-done").exists()
+
+
 def test_not_all_operating_system(tmpdir):
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""

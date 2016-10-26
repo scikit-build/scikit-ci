@@ -21,15 +21,16 @@ def main():
 
     parser = argparse.ArgumentParser(description=ci.__doc__)
     parser.add_argument(
-        "step", type=str, choices=ci.STEPS,
-        help="name of the step to execute")
+        "steps", type=str, choices=ci.STEPS, nargs='+',
+        help="name of the steps to execute")
     parser.add_argument(
         "--version", action="version",
         version=version_str,
         help="display scikit-ci version and import information.")
     args = parser.parse_args()
 
-    ci.execute_step(args.step)
+    for step in args.steps:
+        ci.execute_step(step)
 
 
 if __name__ == '__main__':
