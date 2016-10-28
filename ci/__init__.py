@@ -10,6 +10,6 @@ from .driver import execute_step
 
 __author__ = 'The scikit-build team'
 __email__ = 'scikit-build@googlegroups.com'
-__version__ = '0.7.0'
+__version__ = '0.8.0'
 
 __all__ = ["execute_step", "STEPS"]
