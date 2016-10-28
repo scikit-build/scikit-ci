@@ -9,8 +9,8 @@ import textwrap
 from ruamel.yaml.compat import ordereddict
 
 from . import captured_lines, display_captured_text, push_dir, push_env
-from ci.constants import SERVICES, SERVICES_ENV_VAR
-from ci.driver import Driver, execute_step
+from ci.constants import SERVICES, SERVICES_ENV_VAR, STEPS
+from ci.driver import Driver, dependent_steps, execute_step
 from ci.utils import current_service, current_operating_system
 
 """Indicate if the system has a Windows command line interpreter"""
@@ -55,6 +55,11 @@ def scikit_steps(tmpdir, service):
     ``(step, system, environment)`` for all supported steps.
     """
 
+    # Remove environment variables of the form 'SCIKIT_CI_<STEP>`
+    for step in STEPS:
+        if 'SCIKIT_CI_%s' % step.lower() in os.environ:
+            del os.environ['SCIKIT_CI_%s' % step.lower()]
+
     # By default, a service is associated with only one "implicit" operating
     # system.
     # Service supporting multiple operating system (e.g travis) should be
@@ -80,13 +85,7 @@ def scikit_steps(tmpdir, service):
         environment = os.environ
         enable_service(service, environment, system)
 
-        for step in [
-                'before_install',
-                'install',
-                'before_build',
-                'build',
-                'test',
-                'after_test']:
+        for step in STEPS:
 
             yield step, system, environment
 
@@ -153,13 +152,7 @@ def _generate_scikit_yml_content(service):
                 [textwrap.dedent(template_step).format(
                     what=step,
                     command_0=commands[0],
-                    command_1=commands[1]) for step in
-                 ['before_install',
-                  'install',
-                  'before_build',
-                  'build',
-                  'test',
-                  'after_test']
+                    command_1=commands[1]) for step in STEPS
                  ]
             )
     )
@@ -210,6 +203,16 @@ def test_driver(service, tmpdir, capfd):
                     raise error.with_traceback(sys.exc_info()[2])
                 else:
                     raise
+
+
+def test_dependent_steps():
+    step = "before_install"
+    expected = []
+    assert dependent_steps(step) == expected
+
+    step = "build"
+    expected = ['before_install', 'install', 'before_build']
+    assert dependent_steps(step) == expected
 
 
 def test_shell_command(tmpdir, capfd):
@@ -356,7 +359,7 @@ def test_cli(tmpdir):
     assert tmpdir.join("install-done").exists()
 
 
-def test_cli_multiple_steps(tmpdir):
+def test_cli_force_and_without_deps(tmpdir):
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
         schema_version: "{version}"
@@ -376,15 +379,88 @@ def test_cli_multiple_steps(tmpdir):
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     environment['PYTHONPATH'] = root
 
+    #
+    # Execute without --force
+    #
     subprocess.check_call(
-        "python -m ci before_install install",
+        "python -m ci install",
         shell=True,
         env=environment,
         stderr=subprocess.STDOUT,
         cwd=str(tmpdir)
     )
 
+    # Check that steps were executed
     assert tmpdir.join("before_install-done").exists()
+    assert tmpdir.join("install-done").exists()
+
+    tmpdir.join("before_install-done").remove()
+    tmpdir.join("install-done").remove()
+
+    #
+    # Execute without --force
+    #
+    subprocess.check_call(
+        "python -m ci install",
+        shell=True,
+        env=environment,
+        stderr=subprocess.STDOUT,
+        cwd=str(tmpdir)
+    )
+
+    # Check that steps were NOT re-executed
+    assert not tmpdir.join("before_install-done").exists()
+    assert not tmpdir.join("install-done").exists()
+
+    #
+    # Execute with --force
+    #
+    subprocess.check_call(
+        "python -m ci install --force",
+        shell=True,
+        env=environment,
+        stderr=subprocess.STDOUT,
+        cwd=str(tmpdir)
+    )
+
+    # Check that steps were re-executed
+    assert tmpdir.join("before_install-done").exists()
+    assert tmpdir.join("install-done").exists()
+
+    tmpdir.join("before_install-done").remove()
+    tmpdir.join("install-done").remove()
+
+    #
+    # Execute with --force and --without-deps
+    #
+    subprocess.check_call(
+        "python -m ci install --force --without-deps",
+        shell=True,
+        env=environment,
+        stderr=subprocess.STDOUT,
+        cwd=str(tmpdir)
+    )
+
+    # Check that only specified step was re-executed
+    assert not tmpdir.join("before_install-done").exists()
+    assert tmpdir.join("install-done").exists()
+
+    tmpdir.join("install-done").remove()
+    tmpdir.join("env.json").remove()
+
+    #
+    # Execute with --without-deps
+    #
+    subprocess.check_call(
+        "python -m ci install --without-deps",
+        shell=True,
+        env=environment,
+        stderr=subprocess.STDOUT,
+        cwd=str(tmpdir)
+    )
+
+    # Check that only specified step was executed
+    assert not tmpdir.join("before_install-done").exists()
     assert tmpdir.join("install-done").exists()
 
 
@@ -699,3 +775,143 @@ def test_ci_name_reserved_environment_variable(tmpdir):
         failed = True
 
     assert failed
+
+
+def test_step_ordering_and_dependency(tmpdir):
+    quote = "" if HAS_COMSPEC else "\""
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "{version}"
+        before_install:
+          commands:
+            - "python -c \"with open('before_install', 'w') as file: file.write('')\""
+        install:
+          commands:
+            - "python -c \"with open('install', 'w') as file: file.write('')\""
+        before_build:
+          commands:
+            - "python -c \"with open('before_build', 'w') as file: file.write('')\""
+        build:
+          commands:
+            - "python -c \"with open('build', 'w') as file: file.write('')\""
+        test:
+          commands:
+            - "python -c \"exit(1)\""
+        after_test:
+          commands:
+            - "python -c \"with open('after_test', 'w') as file: file.write('')\""
+        """  # noqa: E501
+    ).format(quote=quote, version=SCHEMA_VERSION))
+    service = 'circle'
+
+    environment = dict(os.environ)
+    enable_service(service, environment)
+
+    with push_dir(str(tmpdir)), push_env(**environment):
+
+        execute_step("install")
+
+        #
+        # Check that steps `before_install` and `install` were executed
+        #
+        env = Driver.read_env()
+        assert env['SCIKIT_CI_BEFORE_INSTALL'] == '1'
+        assert env['SCIKIT_CI_INSTALL'] == '1'
+        assert tmpdir.join('before_install').exists()
+        assert tmpdir.join('install').exists()
+
+        # Remove files - This will to make sure the steps are not re-executed
+        tmpdir.join('before_install').remove()
+        tmpdir.join('install').remove()
+
+        # Check files have been removed
+        assert not tmpdir.join('before_install').exists()
+        assert not tmpdir.join('install').exists()
+
+        execute_step("build")
+
+        #
+        # Check that only `before_build` and `build` steps were executed
+        #
+        env = Driver.read_env()
+        assert env['SCIKIT_CI_BEFORE_INSTALL'] == '1'
+        assert env['SCIKIT_CI_INSTALL'] == '1'
+        assert env['SCIKIT_CI_BEFORE_BUILD'] == '1'
+        assert env['SCIKIT_CI_BUILD'] == '1'
+
+        assert not tmpdir.join('before_install').exists()
+        assert not tmpdir.join('install').exists()
+        assert tmpdir.join('before_build').exists()
+        assert tmpdir.join('build').exists()
+
+        # Remove files - This will to make sure the steps are not re-executed
+        tmpdir.join('before_build').remove()
+        tmpdir.join('build').remove()
+
+        failed = False
+        try:
+            execute_step("after_test")
+        except subprocess.CalledProcessError as e:
+            failed = "exit(1)" in e.cmd
+
+        #
+        # Check that `after_test` step was NOT executed. It should not be
+        # execute because `test` step is failing.
+        #
+        assert failed
+        env = Driver.read_env()
+        assert env['SCIKIT_CI_BEFORE_INSTALL'] == '1'
+        assert env['SCIKIT_CI_INSTALL'] == '1'
+        assert env['SCIKIT_CI_BEFORE_BUILD'] == '1'
+        assert env['SCIKIT_CI_BUILD'] == '1'
+        assert 'SCIKIT_CI_TEST' not in env
+        assert 'SCIKIT_CI_AFTER_TEST' not in env
+
+        assert not tmpdir.join('before_install').exists()
+        assert not tmpdir.join('install').exists()
+        assert not tmpdir.join('before_install').exists()
+        assert not tmpdir.join('install').exists()
+        assert not tmpdir.join('test').exists()
+        assert not tmpdir.join('after_test').exists()
+
+        #
+        # Check `force=True` works as expected
+        #
+        execute_step("install", force=True)
+
+        # Check that steps `before_install` and `install` were re-executed
+        env = Driver.read_env()
+        assert env['SCIKIT_CI_BEFORE_INSTALL'] == '1'
+        assert env['SCIKIT_CI_INSTALL'] == '1'
+        assert tmpdir.join('before_install').exists()
+        assert tmpdir.join('install').exists()
+
+        tmpdir.join('before_install').remove()
+        tmpdir.join('install').remove()
+
+        #
+        # Check `force=True` and `with_dependencies=True` work as expected
+        #
+        execute_step("install", force=True, with_dependencies=False)
+
+        # Check that only step `install` was re-executed
+        env = Driver.read_env()
+        assert env['SCIKIT_CI_BEFORE_INSTALL'] == '1'
+        assert env['SCIKIT_CI_INSTALL'] == '1'
+        assert not tmpdir.join('before_install').exists()
+        assert tmpdir.join('install').exists()
+
+        tmpdir.join('install').remove()
+
+        #
+        # Check `force=False` and `with_dependencies=True` work as expected
+        #
+        tmpdir.join('env.json').remove()
+        execute_step("install", with_dependencies=False)
+
+        # Check that only step `install` was executed
+        env = Driver.read_env()
+        assert 'SCIKIT_CI_BEFORE_INSTALL' not in env
+        assert env['SCIKIT_CI_INSTALL'] == '1'
+        assert not tmpdir.join('before_install').exists()
+        assert tmpdir.join('install').exists()

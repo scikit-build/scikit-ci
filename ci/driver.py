@@ -28,7 +28,7 @@ class DriverContext(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type is None and exc_value is None and traceback is None:
-            self.driver.save_env()
+            self.driver.save_env(self.driver.env, self.env_file)
 
         self.driver.unload_env()
 
@@ -43,6 +43,13 @@ class Driver(object):
         print(" ".join(s))
         sys.stdout.flush()
 
+    @staticmethod
+    def read_env(env_file="env.json"):
+        if not os.path.exists(env_file):
+            return {}
+        with open(env_file) as _file:
+            return json.load(_file)
+
     def load_env(self, env_file="env.json"):
         if self.env is not None:
             self.unload_env()
@@ -52,16 +59,14 @@ class Driver(object):
         self._env_file = env_file
 
         if os.path.exists(self._env_file):
-            self.env.update(json.load(open(self._env_file)))
+            self.env.update(self.read_env(self._env_file))
 
         self.env = {str(k): str(v) for k, v in self.env.items()}
 
-    def save_env(self, env_file=None):
-        if env_file is None:
-            env_file = self._env_file
-
-        with open(env_file, "w") as env:
-            json.dump(self.env, env, indent=4)
+    @staticmethod
+    def save_env(env, env_file="env.json"):
+        with open(env_file, "w") as _file:
+            json.dump(env, _file, indent=4)
 
     def unload_env(self):
         self.env = None
@@ -266,14 +271,45 @@ class Driver(object):
             self.check_call(cmd.replace("\\\\", "\\\\\\\\"), env=self.env)
 
 
-def execute_step(step):
+def dependent_steps(step):
+    if step not in STEPS:  # pragma: no cover
+        raise KeyError("invalid step: {}".format(step))
+    step_index = STEPS.index(step)
+    if step_index == 0:
+        return []
+    return STEPS[0:step_index]
+
+
+def execute_step(step, force=False, with_dependencies=True):
 
     if not os.path.exists(SCIKIT_CI_CONFIG):  # pragma: no cover
         raise OSError(errno.ENOENT, "Couldn't find %s" % SCIKIT_CI_CONFIG)
 
     if step not in STEPS:  # pragma: no cover
-        raise KeyError("invalid stage: {}".format(step))
+        raise KeyError("invalid step: {}".format(step))
+
+    depends = dependent_steps(step)
+
+    # If forcing execution, remove SCIKIT_CI_<step> env. variables
+    if force:
+        env = Driver.read_env()
+        steps = [step]
+        if with_dependencies:
+            steps += depends
+        for _step in steps:
+            if 'SCIKIT_CI_%s' % _step.upper() in env:
+                del env['SCIKIT_CI_%s' % _step.upper()]
+        Driver.save_env(env)
+
+    # Skip step if it has already been executed
+    if 'SCIKIT_CI_%s' % step.upper() in Driver.read_env():
+        return
+
+    # Recursively execute dependent steps
+    if with_dependencies and depends:
+        execute_step(depends[-1], with_dependencies=with_dependencies)
 
     d = Driver()
     with d.env_context():
         d.execute_commands(step)
+        d.env['SCIKIT_CI_%s' % step.upper()] = '1'
