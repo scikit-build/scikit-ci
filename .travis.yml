@@ -43,7 +43,7 @@ before_install:
     git clone git://github.com/scikit-build/scikit-ci -b $TRAVIS_BRANCH ../boostrap-scikit-ci
     pip install -U ../boostrap-scikit-ci
   - pip install scikit-ci-addons==0.3.0
-  - ci_addons --install ..
+  - ci_addons --install ../addons
 
 # scikit-ci-yml.rst: start
 install:
