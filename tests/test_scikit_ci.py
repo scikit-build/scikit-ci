@@ -57,8 +57,8 @@ def scikit_steps(tmpdir, service):
 
     # Remove environment variables of the form 'SCIKIT_CI_<STEP>`
     for step in STEPS:
-        if 'SCIKIT_CI_%s' % step.lower() in os.environ:
-            del os.environ['SCIKIT_CI_%s' % step.lower()]
+        if 'SCIKIT_CI_%s' % step.upper() in os.environ:
+            del os.environ['SCIKIT_CI_%s' % step.upper()]
 
     # By default, a service is associated with only one "implicit" operating
     # system.
