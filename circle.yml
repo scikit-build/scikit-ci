@@ -7,9 +7,6 @@ machine:
 
 # scikit-ci-yml.rst: start
 dependencies:
-  pre:
-    - pip install ../bootstrap-scikit-ci/
-
   override:
     - ci before_install
     - ci install
