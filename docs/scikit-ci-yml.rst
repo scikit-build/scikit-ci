@@ -87,12 +87,29 @@ are know to work.
      :end-before: scikit-ci-yml.rst: end
      :emphasize-lines: 2, 5, 8
 
+.. _step_order:
 
 Order of steps
 --------------
 
-scikit-ci does not impose any order. The order is defined by the
-:ref:`mapping specified <step_mapping>` in the continuous integration file.
+scikit-ci execute steps considering the following order:
+
+#. before_install
+#. install
+#. before_build
+#. build
+#. test
+#. after_test
+
+This means that the :ref:`mapping specified <step_mapping>` in the continuous
+integration file has to be done accordingly.
+
+
+Automatic execution of dependent steps
+--------------------------------------
+
+Considering the :ref:`step ordering <step_order>`, executing any ``step(n)``
+ensures that ``step(n-1)`` has been executed before.
 
 
 Environment variable persistence
