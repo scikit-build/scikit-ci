@@ -21,16 +21,14 @@ init:
 
   - ps: ../appveyor/rolling-build.ps1
 
-  - git clone git://github.com/scikit-build/scikit-ci ../bootstrap-scikit-ci
-  - python.exe -m pip install ../bootstrap-scikit-ci/
+  - git clone git://github.com/scikit-build/scikit-ci -b %APPVEYOR_REPO_BRANCH% ../bootstrap-scikit-ci
+  - python.exe -m pip install -U ../bootstrap-scikit-ci/
 
 # scikit-ci-yml.rst: start
 install:
-  - python -m ci before_install
   - python -m ci install
 
 build_script:
-  - python -m ci before_build
   - python -m ci build
 
 test_script:
