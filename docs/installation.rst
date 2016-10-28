@@ -12,7 +12,7 @@ To install with pip::
 Install from source
 -------------------
 
-To install scikit-build from the latest source, first obtain the source code::
+To install scikit-ci from the latest source, first obtain the source code::
 
     $ git clone https://github.com/scikit-build/scikit-ci
     $ cd scikit-ci

@@ -35,9 +35,9 @@ A core developer should use the following steps to create a release of
 
 8. Make sure the package can be installed::
 
-    mkvirtualenv skci-pip-install
+    mkvirtualenv test-pip-install
     pip install scikit-ci
-    rmvirtualenv skci-pip-install
+    rmvirtualenv test-pip-install
 
 9. Update the version number in `setup.py` and `skbuild/__init__.py` and merge
    the result.

@@ -7,9 +7,8 @@ with steps described in a scikit-ci
 :doc:`configuration file </scikit-ci-yml>`.
 
 
-
 Executing scikit-ci steps
----------------------------------
+-------------------------
 
 By default, invoking scikit-ci will execute all steps listed in
 scikit-ci :doc:`configuration file </scikit-ci-yml>`::

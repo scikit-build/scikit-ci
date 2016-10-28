@@ -15,8 +15,8 @@ subprocess module.
 
 Later in early September 2016, with the desire to setup cross-platform continuous
 integration for other project and avoid duplication or maintenance hell, a
-dedicated repository was created. By simply cloning the repository, it was
-possible to more easily enable CI for other projects.
+dedicated repository was created by Jean-Christophe Fillion-Robin. By simply
+cloning the repository, it was possible to more easily enable CI for other projects.
 
 While this was an improvement, all the steps were still hardcoded in the driver
 scripts, the project was not easily customizable. More could be done to improve
