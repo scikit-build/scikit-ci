@@ -13,12 +13,11 @@ before_install:
   travis:
     osx:
       environment:
-        RUN_ENV: ../ci/travis/run-with-pyenv.sh
+        RUN_ENV: ../travis/run-with-pyenv.sh
       commands:
-        - python ../ci/travis/install_pyenv.py
+        - python ../travis/install_pyenv.py
 
 install:
-
   commands:
     - $<RUN_ENV> $<PYTHON> -m pip install --disable-pip-version-check --upgrade pip
     - $<RUN_ENV> $<PYTHON> -m pip install -r requirements.txt
@@ -42,7 +41,6 @@ test:
     - $<RUN_ENV> $<PYTHON> setup.py test
 
 after_test:
-
   commands:
     - $<RUN_ENV> codecov -X gcov --required --file ./tests/coverage.xml
     - $<RUN_ENV> $<PYTHON> setup.py bdist_wheel
