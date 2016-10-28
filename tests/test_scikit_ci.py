@@ -85,13 +85,7 @@ def scikit_steps(tmpdir, service):
         environment = os.environ
         enable_service(service, environment, system)
 
-        for step in [
-                'before_install',
-                'install',
-                'before_build',
-                'build',
-                'test',
-                'after_test']:
+        for step in STEPS:
 
             yield step, system, environment
 
@@ -158,13 +152,7 @@ def _generate_scikit_yml_content(service):
                 [textwrap.dedent(template_step).format(
                     what=step,
                     command_0=commands[0],
-                    command_1=commands[1]) for step in
-                 ['before_install',
-                  'install',
-                  'before_build',
-                  'build',
-                  'test',
-                  'after_test']
+                    command_1=commands[1]) for step in STEPS
                  ]
             )
     )
