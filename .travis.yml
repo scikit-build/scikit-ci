@@ -42,7 +42,8 @@ before_install:
   - |
     git clone git://github.com/scikit-build/scikit-ci ../boostrap-scikit-ci
     pip install  ../boostrap-scikit-ci
-    git clone git://github.com/scikit-build/scikit-ci-addons ../ci
+  - pip install scikit-ci-addons==0.2.0
+  - ci_addons --install ..
 
 # scikit-ci-yml.rst: start
 install:
