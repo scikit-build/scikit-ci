@@ -62,7 +62,7 @@ are know to work.
      :language: yaml
      :start-after: scikit-ci-yml.rst: start
      :end-before: scikit-ci-yml.rst: end
-     :emphasize-lines: 2-3, 6-7, 10, 13
+     :emphasize-lines: 2, 5, 8, 11
 
   .. note:: Since on windows the ``ci`` executable is installed in the ``Scripts``
             directory (e.g `C:\\Python27\\Scripts\\ci.exe`) which is not in the
@@ -76,7 +76,7 @@ are know to work.
      :language: yaml
      :start-after: scikit-ci-yml.rst: start
      :end-before: scikit-ci-yml.rst: end
-     :emphasize-lines: 6-7, 11-13, 19
+     :emphasize-lines: 6, 10, 16
 
 
   - ``.travis.yml``
@@ -85,7 +85,7 @@ are know to work.
      :language: yaml
      :start-after: scikit-ci-yml.rst: start
      :end-before: scikit-ci-yml.rst: end
-     :emphasize-lines: 2-3, 6-8, 11
+     :emphasize-lines: 2, 5, 8
 
 
 Order of steps
