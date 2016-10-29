@@ -20,6 +20,19 @@ HAS_COMSPEC = "COMSPEC" in os.environ
 SCHEMA_VERSION = "0.5.0"
 
 
+def disable_services(environment=os.environ):
+    """Clear environment variables associated will all know services
+    """
+    for any_service in SERVICES:
+        # Clear service variable (e.g APPVEYOR)
+        if SERVICES_ENV_VAR[any_service] in environment:
+            del environment[SERVICES_ENV_VAR[any_service]]
+        # Clear variable associated operating system (e.g TRAVIS_OS_NAME)
+        if SERVICES[any_service]:
+            if SERVICES[any_service] in environment:
+                del environment[SERVICES[any_service]]
+
+
 def enable_service(service, environment=os.environ, operating_system=None):
     """Ensure ``service`` is enabled.
 
@@ -29,12 +42,7 @@ def enable_service(service, environment=os.environ, operating_system=None):
     the one specifying which OS is enabled) for all services are first removed
     from the ``environment``.
     """
-    for any_service in SERVICES:
-        if SERVICES_ENV_VAR[any_service] in environment:
-            del environment[SERVICES_ENV_VAR[any_service]]
-        if SERVICES[any_service]:
-            if SERVICES[any_service] in environment:
-                del environment[SERVICES[any_service]]
+    disable_services(environment)
     environment[SERVICES_ENV_VAR[service]] = "true"
     if SERVICES[service]:
         assert operating_system is not None
@@ -55,6 +63,7 @@ def test_current_service(service, exception):
             assert current_service() == service
             assert current_operating_system(service) == operating_system
         else:
+            disable_services()
             with pytest.raises(exception):
                 current_service()
 
