@@ -7,9 +7,11 @@ extensions.
 
 from .constants import STEPS
 from .driver import execute_step
+from ._version import get_versions
 
 __author__ = 'The scikit-build team'
 __email__ = 'scikit-build@googlegroups.com'
-__version__ = '0.8.0'
+__version__ = get_versions()['version']
+del get_versions
 
 __all__ = ["execute_step", "STEPS"]

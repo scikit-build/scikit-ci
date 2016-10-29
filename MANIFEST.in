@@ -10,6 +10,8 @@ include README.rst
 include requirements.txt
 include requirements-dev.txt
 include requirements-docs.txt
+include versioneer.py
+include ci/_version.py
 
 recursive-include tests *
 recursive-exclude * __pycache__

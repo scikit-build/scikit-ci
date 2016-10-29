@@ -38,7 +38,3 @@ A core developer should use the following steps to create a release of
     mkvirtualenv test-pip-install
     pip install scikit-ci
     rmvirtualenv test-pip-install
-
-9. Update the version number in `setup.py` and `skbuild/__init__.py` and merge
-   the result.
-
