@@ -41,13 +41,22 @@ def enable_service(service, environment=os.environ, operating_system=None):
         environment[SERVICES[service]] = operating_system
 
 
-@pytest.mark.parametrize("service", SERVICES.keys())
-def test_current_service(service):
+@pytest.mark.parametrize("service, exception", [
+    ('appveyor', None),
+    ('circle', None),
+    ('travis', None),
+    ('invalid', LookupError)
+])
+def test_current_service(service, exception):
     with push_env():
-        operating_system = "linux" if SERVICES[service] else None
-        enable_service(service, operating_system=operating_system)
-        assert current_service() == service
-        assert current_operating_system(service) == operating_system
+        if exception is None:
+            operating_system = "linux" if SERVICES[service] else None
+            enable_service(service, operating_system=operating_system)
+            assert current_service() == service
+            assert current_operating_system(service) == operating_system
+        else:
+            with pytest.raises(exception):
+                current_service()
 
 
 def scikit_steps(tmpdir, service):
