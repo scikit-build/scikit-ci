@@ -17,9 +17,9 @@ environment:
 
 init:
   - python.exe -m pip install scikit-ci-addons==0.3.0
-  - python.exe -m ci_addons --install ..
+  - python.exe -m ci_addons --install ../addons
 
-  - ps: ../appveyor/rolling-build.ps1
+  - ps: ../addons/appveyor/rolling-build.ps1
 
   - git clone git://github.com/scikit-build/scikit-ci -b %APPVEYOR_REPO_BRANCH% ../bootstrap-scikit-ci
   - python.exe -m pip install -U ../bootstrap-scikit-ci/
@@ -39,7 +39,7 @@ after_test:
 # scikit-ci-yml.rst: end
 
 on_finish:
-  - ps: ../appveyor/enable-worker-remote-access.ps1 -check_for_block
+  - ps: ../addons/appveyor/enable-worker-remote-access.ps1 -check_for_block
 
 artifacts:
   # Archive the generated packages in the ci.appveyor.com build report.
