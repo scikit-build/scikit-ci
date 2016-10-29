@@ -11,6 +11,7 @@ from ruamel.yaml.compat import ordereddict
 from . import captured_lines, display_captured_text, push_dir, push_env
 from ci.constants import SERVICES, SERVICES_ENV_VAR, STEPS
 from ci.driver import Driver, dependent_steps, execute_step
+from ci.exceptions import SKCIStepExecutionError
 from ci.utils import current_service, current_operating_system
 
 """Indicate if the system has a Windows command line interpreter"""
@@ -869,8 +870,8 @@ def test_step_ordering_and_dependency(tmpdir):
         failed = False
         try:
             execute_step("after_test")
-        except subprocess.CalledProcessError as e:
-            failed = "exit(1)" in e.cmd
+        except SKCIStepExecutionError as exc:
+            failed = "exit(1)" in exc.cmd
 
         #
         # Check that `after_test` step was NOT executed. It should not be

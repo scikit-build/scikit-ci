@@ -62,8 +62,13 @@ def main():
         help="display scikit-ci version and import information.")
     args = parser.parse_args()
 
-    ci.execute_step(
-        args.step, force=args.force, with_dependencies=args.with_dependencies)
+    try:
+        ci.execute_step(
+            args.step,
+            force=args.force,
+            with_dependencies=args.with_dependencies)
+    except ci.SKCIError as exc:
+        exit(exc)
 
 
 if __name__ == '__main__':  # pragma: no cover

@@ -13,7 +13,7 @@ import shlex
 import subprocess
 import sys
 
-from . import utils
+from . import exceptions, utils
 from .constants import SCIKIT_CI_CONFIG, SERVICES, STEPS
 
 
@@ -268,7 +268,12 @@ class Driver(object):
             # Expand environment variables used within commands
             cmd = self.expand_command(
                 cmd, self.env, posix_shell=posix_shell)
-            self.check_call(cmd.replace("\\\\", "\\\\\\\\"), env=self.env)
+            try:
+                self.check_call(cmd.replace("\\\\", "\\\\\\\\"), env=self.env)
+            except subprocess.CalledProcessError as exc:
+                raise exceptions.SKCIStepExecutionError(
+                    stage_name, exc.returncode, exc.cmd, exc.output
+                )
 
 
 def dependent_steps(step):
