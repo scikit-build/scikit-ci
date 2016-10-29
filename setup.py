@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+import versioneer
 
 from setuptools import setup
 
@@ -27,7 +28,8 @@ setup_requires = pytest_runner
 setup(
     name='scikit-ci',
 
-    version='0.8.0',
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
 
     author='The scikit-build team',
     author_email='scikit-build@googlegroups.com',
