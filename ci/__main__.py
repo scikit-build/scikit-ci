@@ -66,5 +66,5 @@ def main():
         args.step, force=args.force, with_dependencies=args.with_dependencies)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     main()
