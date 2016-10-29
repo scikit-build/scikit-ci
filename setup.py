@@ -47,6 +47,7 @@ setup(
 
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
+        'Environment :: Console',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Natural Language :: English',
