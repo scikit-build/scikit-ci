@@ -112,13 +112,37 @@ Considering the :ref:`step ordering <step_order>`, executing any ``step(n)``
 ensures that ``step(n-1)`` has been executed before.
 
 
+Keeping track of executed steps
+-------------------------------
+
+scikit-ci keeps track of executed steps setting environment variables like
+``SCIKIT_CI_<STEP_NAME>`` where ``<STEP_NAME>`` is any of
+the upper-cased step name.
+
+.. note::
+
+    Specifying the command line option ``--force`` allows to force
+    the execution of the steps ignoring the values of the ``SCIKIT_CI_<STEP_NAME>``
+    environment variables.
+
+
 Environment variable persistence
 --------------------------------
 
 Environment variable defined in any given step are always guaranteed to be
-set in step executed afterward.
+set in steps executed afterward.
 
 This is made possible by serializing the environment on the filesystem.
+
+
+.. note::
+
+    After executing steps, a file named ``env.json`` is created in the current
+    directory along side ``scikit-ci.yml``. This is where the environment is
+    cached for re-use in subsequent steps.
+
+    Specifying the command line option ``--clear-cached-env`` allows to execute
+    steps after removing the ``env.json`` file.
 
 
 Step specialization

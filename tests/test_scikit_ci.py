@@ -819,7 +819,6 @@ def test_ci_name_reserved_environment_variable(tmpdir):
 
 
 def test_step_ordering_and_dependency(tmpdir):
-    quote = "" if HAS_COMSPEC else "\""
     tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
         r"""
         schema_version: "{version}"
@@ -842,7 +841,7 @@ def test_step_ordering_and_dependency(tmpdir):
           commands:
             - "python -c \"with open('after_test', 'w') as file: file.write('')\""
         """  # noqa: E501
-    ).format(quote=quote, version=SCHEMA_VERSION))
+    ).format(version=SCHEMA_VERSION))
     service = 'circle'
 
     environment = dict(os.environ)
@@ -956,3 +955,42 @@ def test_step_ordering_and_dependency(tmpdir):
         assert env['SCIKIT_CI_INSTALL'] == '1'
         assert not tmpdir.join('before_install').exists()
         assert tmpdir.join('install').exists()
+
+
+def test_clear_env(tmpdir):
+    """This test checks that the 'env.json' file is removed when the force
+    option is specified.
+    """
+
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "{version}"
+        """
+    ).format(version=SCHEMA_VERSION))
+
+    service = 'circle'
+
+    environment = dict(os.environ)
+    enable_service(service, environment)
+
+    with push_dir(str(tmpdir)), push_env(**environment):
+
+        execute_step("test")
+
+        env = Driver.read_env()
+        assert env['SCIKIT_CI_TEST'] == '1'
+
+        # Add variable to check env file is effectively removed
+        assert 'CLEAR_ENV_TEST' not in env
+        env['CLEAR_ENV_TEST'] = '1'
+        Driver.save_env(env)
+        assert 'CLEAR_ENV_TEST' in Driver.read_env()
+
+        #
+        # Re-execute 'test' step clearing environment
+        #
+        execute_step("test", clear_cached_env=True)
+
+        env = Driver.read_env()
+        assert env['SCIKIT_CI_TEST'] == '1'
+        assert 'CLEAR_ENV_TEST' not in env

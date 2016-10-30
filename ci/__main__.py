@@ -57,6 +57,10 @@ def main():
         help="do not execute dependent steps", dest='with_dependencies'
     )
     parser.add_argument(
+        "--clear-cached-env", action="store_true",
+        help="clear cached environment (removes 'env.json' file)"
+    )
+    parser.add_argument(
         "--version", action="version",
         version=version_str,
         help="display scikit-ci version and import information.")
@@ -66,7 +70,9 @@ def main():
         ci.execute_step(
             args.step,
             force=args.force,
-            with_dependencies=args.with_dependencies)
+            with_dependencies=args.with_dependencies,
+            clear_cached_env=args.clear_cached_env
+        )
     except ci.SKCIError as exc:
         exit(exc)
 
