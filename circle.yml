@@ -9,6 +9,7 @@ dependencies:
       echo "CIRCLE_BRANCH:$CIRCLE_BRANCH"
       git clone git://github.com/scikit-build/scikit-ci -b $CIRCLE_BRANCH ../bootstrap-scikit-ci
       pip install -U ../bootstrap-scikit-ci
+
     - ci install
 
 test:
