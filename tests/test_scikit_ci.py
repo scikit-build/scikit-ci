@@ -1,6 +1,7 @@
 
 import os
 import platform
+import pyfiglet
 import pytest
 import subprocess
 import sys
@@ -177,6 +178,16 @@ def _generate_scikit_yml_content(service):
     )
 
 
+def strip_ascii_art(tuple_of_lines):
+    """Return lines without the ascii-art representing the step name.
+    """
+    if not isinstance(tuple_of_lines, tuple):
+        tuple_of_lines = (tuple_of_lines,)
+
+    offset = pyfiglet.FigletFont().height
+    return tuple([lines[offset + 1:] for lines in tuple_of_lines])
+
+
 @pytest.mark.parametrize("service", SERVICES)
 def test_driver(service, tmpdir, capfd):
 
@@ -195,7 +206,8 @@ def test_driver(service, tmpdir, capfd):
 
             with push_dir(str(tmpdir)), push_env(**environment):
                 execute_step(step)
-                output_lines, error_lines = captured_lines(capfd)
+                output_lines, error_lines = strip_ascii_art(
+                    captured_lines(capfd))
 
             outputs.append((step, system, output_lines, error_lines))
 
@@ -262,7 +274,7 @@ def test_shell_command(tmpdir, capfd):
 
         with push_dir(str(tmpdir)), push_env(**environment):
             execute_step(step)
-            output_lines, _ = captured_lines(capfd)
+            output_lines, _ = strip_ascii_art(captured_lines(capfd))
 
         if step == 'install':
             if platform.system().lower() == "windows":
@@ -274,7 +286,7 @@ def test_shell_command(tmpdir, capfd):
                 assert output_lines[4] == "var: oof"
                 assert output_lines[5] == "var: rab"
         else:
-            assert output_lines[0] == ''
+            assert len(output_lines) == 0
 
 
 @pytest.mark.skipif(platform.system().lower() == "windows",
@@ -311,13 +323,13 @@ def test_multi_line_shell_command(tmpdir, capfd):
 
         with push_dir(str(tmpdir)), push_env(**environment):
             execute_step(step)
-            output_lines, _ = captured_lines(capfd)
+            output_lines, _ = strip_ascii_art(captured_lines(capfd))
 
         if step == 'install':
             assert output_lines[3] == "var foo"
             assert output_lines[4] == "var bar"
         else:
-            assert output_lines[0] == ''
+            assert len(output_lines) == 0
 
 
 def _expand_command_test(command, posix_shell, expected):
@@ -559,11 +571,16 @@ def test_environment_persist(tmpdir, capfd):
     ).format(quote=quote, version=SCHEMA_VERSION))
     service = 'circle'
 
+    output_lines = []
+
     with push_dir(str(tmpdir)), push_env():
         enable_service(service)
+
         execute_step("before_install")
+        output_lines.extend(strip_ascii_art(captured_lines(capfd))[0])
+
         execute_step("install")
-        output_lines, _ = captured_lines(capfd)
+        output_lines.extend(strip_ascii_art(captured_lines(capfd))[0])
 
     assert output_lines[1] == "1 [hello] [under world] []"
     assert output_lines[3] == "2 [hello] [beautiful world] []"
@@ -601,7 +618,7 @@ def test_within_environment_expansion(tmpdir, capfd):
 
     with push_dir(str(tmpdir)), push_env(**environment):
         execute_step("before_install")
-        output_lines, _ = captured_lines(capfd)
+        output_lines, _ = strip_ascii_art(captured_lines(capfd))
 
     assert output_lines[1] == "[hello world of " + quote_type + "wonders" + quote_type + "]"  # noqa: E501
     assert output_lines[3] == "[\\the\\thing]".replace("\\", backslashes)
@@ -634,11 +651,16 @@ def test_expand_environment(tmpdir, capfd):
     ).format(quote=quote, version=SCHEMA_VERSION))
     service = 'circle'
 
+    output_lines = []
+
     with push_dir(str(tmpdir)), push_env(SYMBOLS="c;d;e"):
         enable_service(service)
+
         execute_step("before_install")
+        output_lines.extend(strip_ascii_art(captured_lines(capfd))[0])
+
         execute_step("install")
-        output_lines, _ = captured_lines(capfd)
+        output_lines.extend(strip_ascii_art(captured_lines(capfd))[0])
 
     assert output_lines[1] == "before_install [a;b;c;d;e]"
     assert output_lines[3] == "install [8;9;a;b;c;d;e]"
@@ -766,7 +788,7 @@ def test_ci_name_environment_variable(tmpdir, capfd):
     with push_dir(str(tmpdir)), push_env():
         enable_service(service)
         execute_step("before_install")
-        output_lines, _ = captured_lines(capfd)
+        output_lines, _ = strip_ascii_art(captured_lines(capfd))
 
     assert output_lines[1] == "ci_name [%s] foo [%s]" % (service, service)
 

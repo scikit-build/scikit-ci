@@ -7,6 +7,8 @@ branches:
 version: "0.0.1.{build}"
 
 environment:
+  GH_CMDLINE_TOKEN:
+    secure: 8qYavC/JSRbc77YFoPEyjD8jaBjNGRXyBMjXQAIYi6En1ymsG0Mucxt1m79osNc0
   matrix:
 
     - PYTHON_DIR: "C:\\Python27-x64"
@@ -21,7 +23,29 @@ init:
 
   - ps: ../addons/appveyor/rolling-build.ps1
 
-  - git clone git://github.com/scikit-build/scikit-ci -b %APPVEYOR_REPO_BRANCH% ../bootstrap-scikit-ci
+  - ps: |
+        $env:BOOTSRAP_BRANCH = $env:APPVEYOR_REPO_BRANCH
+        if($env:APPVEYOR_PULL_REQUEST_NUMBER -ne $null) {
+          #
+          # Since AppVeyor provides only the PR numbder, retrieve
+          # PR branch name directly from GitHub
+          #
+          # See also https://developer.github.com/v3/pulls/#get-a-single-pull-request
+          #
+          $GitHubUri="https://api.github.com/repos/scikit-build/scikit-ci/pulls/$env:APPVEYOR_PULL_REQUEST_NUMBER"
+          $env:BOOTSRAP_BRANCH=(Invoke-WebRequest            `
+            -Uri $GitHubUri                                  `
+            -Headers @{                                      `
+              "Authorization"="token $env:GH_CMDLINE_TOKEN"; `
+              "Accept"= "application/vnd.github.v3.raw"      `
+            } | ConvertFrom-Json).head.ref
+        }
+        Write-Host "BOOTSRAP_BRANCH:$env:BOOTSRAP_BRANCH"
+
+        # Clear GH_CMDLINE_TOKEN variable
+        Remove-Item Env:GH_CMDLINE_TOKEN
+
+  - git clone git://github.com/scikit-build/scikit-ci -b %BOOTSRAP_BRANCH% ../bootstrap-scikit-ci
   - python.exe -m pip install -U ../bootstrap-scikit-ci/
 
 # scikit-ci-yml.rst: start
