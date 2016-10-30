@@ -13,6 +13,8 @@ import shlex
 import subprocess
 import sys
 
+from pyfiglet import Figlet
+
 from . import exceptions, utils
 from .constants import SCIKIT_CI_CONFIG, SERVICES, STEPS
 
@@ -247,6 +249,8 @@ class Driver(object):
         return environment, commands
 
     def execute_commands(self, stage_name):
+
+        print(Figlet().renderText(stage_name.upper()))
 
         service_name = utils.current_service()
 

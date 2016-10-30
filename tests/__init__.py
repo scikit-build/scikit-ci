@@ -96,8 +96,8 @@ def captured_lines(cap):
     See http://doc.pytest.org/en/latest/capture.html
     """
     out, err = cap.readouterr()
-    return (out.replace(os.linesep, "\n").split("\n"),
-            err.replace(os.linesep, "\n").split("\n"))
+    return (out.rstrip().replace(os.linesep, "\n").split("\n"),
+            err.rstrip().replace(os.linesep, "\n").split("\n"))
 
 
 def display_captured_text(output_lines, error_lines, with_lineno=True):
