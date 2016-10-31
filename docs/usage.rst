@@ -10,14 +10,42 @@ with steps described in a scikit-ci
 Executing scikit-ci steps
 -------------------------
 
-By default, invoking scikit-ci will execute all steps listed in
-scikit-ci :doc:`configuration file </scikit-ci-yml>`::
+Invoking scikit-ci will execute all steps listed in
+a scikit-ci :doc:`configuration file </scikit-ci-yml>`::
 
     ci
 
-You can also specify one or multiple steps::
+This command executes in order the steps listed below:
 
-    ci before_install install
+- before_install
+- install
+- before_build
+- build
+- test
+- after_test
+
+It also possible to execute a given step and its dependent steps::
+
+    ci build
+
+In that case, the executed steps will be:
+
+- before_install
+- install
+- before_build
+- build
+
+.. note::
+
+    Remember that:
+
+    - steps are executed following a specific :ref:`ordering <step_order>`
+
+    - scikit-ci :ref:`keeps track <keeping_track_executed_steps>` of previously
+      executed steps.
+
+    - environment variables set in ``step(n)`` will be available in ``step(n+1)``.
+      For more details, see :ref:`environment_variable_persistence`
 
 
 Calling scikit-ci through ``python -m ci``

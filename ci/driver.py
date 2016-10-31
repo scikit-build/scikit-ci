@@ -289,13 +289,17 @@ def dependent_steps(step):
     return STEPS[0:step_index]
 
 
-def execute_step(step, force=False, with_dependencies=True):
+def execute_step(
+        step, force=False, with_dependencies=True, clear_cached_env=False):
 
     if not os.path.exists(SCIKIT_CI_CONFIG):  # pragma: no cover
         raise OSError(errno.ENOENT, "Couldn't find %s" % SCIKIT_CI_CONFIG)
 
     if step not in STEPS:  # pragma: no cover
         raise KeyError("invalid step: {}".format(step))
+
+    if clear_cached_env and os.path.exists('env.json'):
+        os.remove('env.json')
 
     depends = dependent_steps(step)
 
