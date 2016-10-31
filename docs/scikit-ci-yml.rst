@@ -112,12 +112,14 @@ Considering the :ref:`step ordering <step_order>`, executing any ``step(n)``
 ensures that ``step(n-1)`` has been executed before.
 
 
+.. _keeping_track_executed_steps:
+
 Keeping track of executed steps
 -------------------------------
 
-scikit-ci keeps track of executed steps setting environment variables like
-``SCIKIT_CI_<STEP_NAME>`` where ``<STEP_NAME>`` is any of
-the upper-cased step name.
+scikit-ci keeps track of executed steps setting environment variables of the
+form ``SCIKIT_CI_<STEP_NAME>`` where ``<STEP_NAME>`` is any of the step name
+in upper-case.
 
 .. note::
 
@@ -125,6 +127,7 @@ the upper-cased step name.
     the execution of the steps ignoring the values of the ``SCIKIT_CI_<STEP_NAME>``
     environment variables.
 
+.. _environment_variable_persistence:
 
 Environment variable persistence
 --------------------------------
