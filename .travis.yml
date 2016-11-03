@@ -40,12 +40,12 @@ cache:
 
 before_install:
   - |
-    BOOTSRAP_BRANCH=$TRAVIS_PULL_REQUEST_BRANCH
-    if [[ $BOOTSRAP_BRANCH == "" ]]; then
-      BOOTSRAP_BRANCH = $$TRAVIS_BRANCH
+    BOOTSTRAP_BRANCH=$TRAVIS_PULL_REQUEST_BRANCH
+    if [[ $BOOTSTRAP_BRANCH == "" ]]; then
+      BOOTSTRAP_BRANCH=$TRAVIS_BRANCH
     fi
-    echo "BOOTSRAP_BRANCH:$BOOTSRAP_BRANCH"
-    git clone git://github.com/scikit-build/scikit-ci -b $BOOTSRAP_BRANCH ../boostrap-scikit-ci
+    echo "BOOTSTRAP_BRANCH:$BOOTSTRAP_BRANCH"
+    git clone git://github.com/scikit-build/scikit-ci -b $BOOTSTRAP_BRANCH ../boostrap-scikit-ci
     pip install -U ../boostrap-scikit-ci
 
   - pip install scikit-ci-addons==0.6.0
