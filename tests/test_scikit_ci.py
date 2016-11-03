@@ -299,11 +299,14 @@ def test_multi_line_shell_command(tmpdir, capfd):
             install:
               commands:
                 - |
-                  for %G in (foo bar) do ^
-                  python -c "print('var %G')"
+                  for %%G in (foo bar) do ^
+                  python -c "print('var %%G')"
+
+                  if "bar" == "bar" echo "bar is bar"
             """
         ).format(version=SCHEMA_VERSION))
         service = 'appveyor'
+        offset = 4
 
     else:
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
@@ -315,9 +318,14 @@ def test_multi_line_shell_command(tmpdir, capfd):
                   for var in foo bar; do
                     python -c "print('var $var')"
                   done
+
+                  if [[ "bar" == "bar" ]]; then
+                    echo "bar is bar"
+                  fi
             """
         ).format(version=SCHEMA_VERSION))
         service = 'circle'
+        offset = 6
 
     for step, system, environment in scikit_steps(tmpdir, service):
 
@@ -326,8 +334,9 @@ def test_multi_line_shell_command(tmpdir, capfd):
             output_lines, _ = strip_ascii_art(captured_lines(capfd))
 
         if step == 'install':
-            assert output_lines[3] == "var foo"
-            assert output_lines[4] == "var bar"
+            assert output_lines[offset + 1] == "var foo"
+            assert output_lines[offset + 2] == "var bar"
+            assert output_lines[offset + 3] == "bar is bar"
         else:
             assert len(output_lines) == 0
 
@@ -860,7 +869,7 @@ def test_step_ordering_and_dependency(tmpdir):
         assert tmpdir.join('before_install').exists()
         assert tmpdir.join('install').exists()
 
-        # Remove files - This will to make sure the steps are not re-executed
+        # Remove files - This is to make sure the steps are not re-executed
         tmpdir.join('before_install').remove()
         tmpdir.join('install').remove()
 

@@ -12,6 +12,7 @@ import ruamel.yaml
 import shlex
 import subprocess
 import sys
+import tempfile
 
 from pyfiglet import Figlet
 
@@ -73,16 +74,87 @@ class Driver(object):
     def unload_env(self):
         self.env = None
 
+    class UnixGenericCommandConfig(object):
+        shell = "bash"
+        subprocess_shell_mode = False
+        shell_options = []
+        use_script = True
+        script_suffix = ".sh"
+        script_pre_code = "set -e"
+        script_post_code = ""
+
+        @staticmethod
+        def escape_cmd(cmd):
+            return cmd
+
+    class WindowsGenericCommandConfig(object):
+        shell = "cmd.exe"
+        subprocess_shell_mode = True
+        shell_options = ["/E:ON", "/V:ON", "/c"]
+        use_script = False
+        script_suffix = ".cmd"
+        script_pre_code = ""
+        script_post_code = ""
+
+        @staticmethod
+        def escape_cmd(cmd):
+            return "\"%s\"" % cmd.replace("\\\\", "\\\\\\\\")
+
+    @staticmethod
+    def get_command_config():
+        if "COMSPEC" in os.environ:
+            return Driver.WindowsGenericCommandConfig()
+        return Driver.UnixGenericCommandConfig()
+
     def check_call(self, *args, **kwds):
         kwds["env"] = kwds.get("env", self.env)
-        kwds["shell"] = True
+        cmd_config = kwds.pop("cmd_config")
+        kwds["shell"] = cmd_config.subprocess_shell_mode
+        cmd = cmd_config.escape_cmd(args[0])
+        if cmd_config.use_script:
+            script = cmd
+            script_lines = script.splitlines()
+            if len(script_lines) == 1:
+                self.log("[scikit-ci] Executing: %s" % script)
+            else:
+                self.log("[scikit-ci] Executing:")
+                prefix = " " * len("[scikit-ci] ") + "  "
+                for line in utils.indent(script, prefix).splitlines():
+                    self.log(line)
 
-        if "COMSPEC" in os.environ:
-            cmd = "cmd.exe /E:ON /V:ON /C \"%s\"" % args[0]
-            args = [cmd]
+            def _write(output_stream, txt):
+                output_stream.write(bytearray("%s\n" % txt, "utf-8"))
 
-        self.log("[scikit-ci] Executing: %s" % args[0])
-        return subprocess.check_call(*args, **kwds)
+            # Because of python issue #14243, we set "delete=False" and delete
+            # manually after process execution.
+            try:
+                script_file = tempfile.NamedTemporaryFile(
+                    delete=False, suffix=cmd_config.script_suffix)
+                # Pre-code
+                _write(script_file, cmd_config.script_pre_code)
+                # Content provided in the yml configuration files
+                _write(script_file, script)
+                # Post-code
+                _write(script_file, cmd_config.script_post_code)
+                script_file.file.flush()
+
+                # Then, compose the command to execute
+                shell_cmd = [cmd_config.shell]
+                shell_cmd.extend(cmd_config.shell_options)
+                shell_cmd.append(script_file.name)
+                args = [shell_cmd]
+                # And finally execute
+                return subprocess.check_call(*args, **kwds)
+            finally:
+                script_file.close()
+                os.remove(script_file.name)
+        else:
+            shell_cmd = [cmd_config.shell] if cmd_config.shell else []
+            shell_cmd.extend(cmd_config.shell_options)
+            shell_cmd.append(cmd)
+            args = [" ".join(shell_cmd)]
+            self.log("[scikit-ci] Executing: %s" % args[0])
+            return subprocess.check_call(*args, **kwds)
 
     def env_context(self, env_file="env.json"):
         return DriverContext(self, env_file)
@@ -271,12 +343,13 @@ class Driver(object):
         for cmd in commands:
             # Expand environment variables used within commands
             cmd = self.expand_command(
-                cmd, self.env, posix_shell=posix_shell)
+                cmd, self.env, posix_shell=posix_shell).strip()
             try:
-                self.check_call(cmd.replace("\\\\", "\\\\\\\\"), env=self.env)
+                self.check_call(
+                    cmd, cmd_config=self.get_command_config(), env=self.env)
             except subprocess.CalledProcessError as exc:
                 raise exceptions.SKCIStepExecutionError(
-                    stage_name, exc.returncode, exc.cmd, exc.output
+                    stage_name, exc.returncode, cmd, exc.output
                 )
 
 
