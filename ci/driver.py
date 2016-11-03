@@ -14,6 +14,11 @@ import subprocess
 import sys
 import tempfile
 
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
+
 from pyfiglet import Figlet
 
 from . import exceptions, utils
@@ -359,8 +364,16 @@ class Driver(object):
         for cmd in commands:
             language = "default"
             if isinstance(cmd, dict):
-                language = list(cmd.keys())[0]
-                cmd = list(cmd.values())[0]
+                # Prevent output of debug message.
+                # Workaround https://bitbucket.org/ruamel/yaml/pull-requests/13
+                try:
+                    oldout = sys.stdout
+                    sys.stdout = StringIO()
+                    language = list(cmd.keys())[0]
+                    cmd = list(cmd.values())[0]
+                finally:
+                    sys.stdout = oldout
+
             else:
                 # Expand environment variables used within commands
                 posix_shell = "COMSPEC" not in os.environ
