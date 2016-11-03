@@ -74,37 +74,55 @@ class Driver(object):
     def unload_env(self):
         self.env = None
 
-    class UnixGenericCommandConfig(object):
-        shell = "bash"
+    if "COMSPEC" in os.environ:
+
+        class GenericCommandConfig(object):
+            shell = "cmd.exe"
+            subprocess_shell_mode = True
+            shell_options = ["/E:ON", "/V:ON", "/c"]
+            use_script = False
+            script_suffix = ".cmd"
+            script_pre_code = ""
+            script_post_code = ""
+
+            @staticmethod
+            def escape_cmd(cmd):
+                return "\"%s\"" % cmd.replace("\\\\", "\\\\\\\\")
+
+    else:
+
+        class GenericCommandConfig(object):
+            shell = "bash"
+            subprocess_shell_mode = False
+            shell_options = []
+            use_script = True
+            script_suffix = ".sh"
+            script_pre_code = "set -e"
+            script_post_code = ""
+
+            @staticmethod
+            def escape_cmd(cmd):
+                return cmd
+
+    class PythonCommandConfig(object):
+        shell = "python"
         subprocess_shell_mode = False
-        shell_options = []
+        shell_options = ["-B"]
         use_script = True
-        script_suffix = ".sh"
-        script_pre_code = "set -e"
+        script_suffix = ".py"
+        script_pre_code = ""
         script_post_code = ""
 
         @staticmethod
         def escape_cmd(cmd):
             return cmd
 
-    class WindowsGenericCommandConfig(object):
-        shell = "cmd.exe"
-        subprocess_shell_mode = True
-        shell_options = ["/E:ON", "/V:ON", "/c"]
-        use_script = False
-        script_suffix = ".cmd"
-        script_pre_code = ""
-        script_post_code = ""
-
-        @staticmethod
-        def escape_cmd(cmd):
-            return "\"%s\"" % cmd.replace("\\\\", "\\\\\\\\")
-
     @staticmethod
-    def get_command_config():
-        if "COMSPEC" in os.environ:
-            return Driver.WindowsGenericCommandConfig()
-        return Driver.UnixGenericCommandConfig()
+    def get_command_config(language):
+        if language == "python":
+            return Driver.PythonCommandConfig()
+        else:
+            return Driver.GenericCommandConfig()
 
     def check_call(self, *args, **kwds):
         kwds["env"] = kwds.get("env", self.env)
@@ -144,7 +162,7 @@ class Driver(object):
                 shell_cmd.append(script_file.name)
                 args = [shell_cmd]
                 # And finally execute
-                return subprocess.check_call(*args, **kwds)
+                subprocess.check_call(*args, **kwds)
             finally:
                 script_file.close()
                 os.remove(script_file.name)
@@ -154,7 +172,7 @@ class Driver(object):
             shell_cmd.append(cmd)
             args = [" ".join(shell_cmd)]
             self.log("[scikit-ci] Executing: %s" % args[0])
-            return subprocess.check_call(*args, **kwds)
+            subprocess.check_call(*args, **kwds)
 
     def env_context(self, env_file="env.json"):
         return DriverContext(self, env_file)
@@ -338,15 +356,21 @@ class Driver(object):
                 value = value.replace(old, new)
             self.env[name] = value
 
-        posix_shell = "COMSPEC" not in os.environ
-
         for cmd in commands:
-            # Expand environment variables used within commands
-            cmd = self.expand_command(
-                cmd, self.env, posix_shell=posix_shell).strip()
+            language = "default"
+            if isinstance(cmd, dict):
+                language = list(cmd.keys())[0]
+                cmd = list(cmd.values())[0]
+            else:
+                # Expand environment variables used within commands
+                posix_shell = "COMSPEC" not in os.environ
+                cmd = self.expand_command(
+                    cmd, self.env, posix_shell=posix_shell).strip()
             try:
                 self.check_call(
-                    cmd, cmd_config=self.get_command_config(), env=self.env)
+                    cmd, cmd_config=self.get_command_config(language),
+                    env=self.env
+                )
             except subprocess.CalledProcessError as exc:
                 raise exceptions.SKCIStepExecutionError(
                     stage_name, exc.returncode, cmd, exc.output
