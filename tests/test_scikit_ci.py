@@ -1003,3 +1003,36 @@ def test_clear_env(tmpdir):
         env = Driver.read_env()
         assert env['SCIKIT_CI_TEST'] == '1'
         assert 'CLEAR_ENV_TEST' not in env
+
+
+def test_python_cmd(tmpdir, capfd):
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "{version}"
+        test:
+          commands:
+            - python: print("single_line")
+            - python: "for letter in ['a', 'b', 'c']: print(letter)"
+            - python: |
+                      for index in range(3):
+                          with open("file_%s" % index, "w") as output:
+                              output.write("")
+        """
+    ).format(version=SCHEMA_VERSION))
+
+    service = 'circle'
+
+    environment = dict(os.environ)
+    enable_service(service, environment)
+
+    with push_dir(str(tmpdir)), push_env(**environment):
+        execute_step("test", with_dependencies=False)
+        output_lines, _ = strip_ascii_art(captured_lines(capfd))
+
+    assert output_lines[1] == "single_line"
+    assert output_lines[3] == "a"
+    assert output_lines[4] == "b"
+    assert output_lines[5] == "c"
+    assert tmpdir.join("file_0").exists()
+    assert tmpdir.join("file_1").exists()
+    assert tmpdir.join("file_2").exists()

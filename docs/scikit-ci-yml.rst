@@ -256,6 +256,8 @@ Reserved Environment Variables
     contain the name of the continuous integration service currently executing
     the step.
 
+.. _environment_variable_usage:
+
 Environment variable usage
 --------------------------
 
@@ -313,3 +315,33 @@ The output on the different service will be the following:
 
           .. autoclass:: ci.driver.Driver
              :members: expand_command
+
+
+Python Commands
+---------------
+
+.. versionadded:: 0.10.0
+
+The ``python`` commands are supported on all platforms.
+
+For example:
+
+.. code-block:: yaml
+
+  test:
+    commands:
+      - python: print("single_line")
+      - python: "for letter in ['a', 'b', 'c']: print(letter)"
+      - python: |
+                import os
+                if 'FOO' in os.environ:
+                    print("FOO is set")
+                else:
+                    print("FOO is *NOT* set")
+
+
+.. note::
+
+    By using ``os.environ``, they remove the need for specifying environment
+    variable using the ``$<NAME_OF_VARIABLE>`` syntax described in
+    :ref:`environment_variable_usage`.
