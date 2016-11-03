@@ -42,7 +42,7 @@ before_install:
   - |
     BOOTSTRAP_BRANCH=$TRAVIS_PULL_REQUEST_BRANCH
     if [[ $BOOTSTRAP_BRANCH == "" ]]; then
-      BOOTSTRAP_BRANCH = $$TRAVIS_BRANCH
+      BOOTSTRAP_BRANCH=$TRAVIS_BRANCH
     fi
     echo "BOOTSTRAP_BRANCH:$BOOTSTRAP_BRANCH"
     git clone git://github.com/scikit-build/scikit-ci -b $BOOTSTRAP_BRANCH ../boostrap-scikit-ci
