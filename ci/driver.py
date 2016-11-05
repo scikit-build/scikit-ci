@@ -183,14 +183,21 @@ class Driver(object):
         return DriverContext(self, env_file)
 
     @staticmethod
-    def expand_environment_vars(text, environment):
+    def expand_environment_vars(text, environment, to_empty_string=False):
         """Return an updated ``text`` string where all occurrences of
         ``$<EnvironmentVarName>`` found in ``environment`` are replaced.
+
+        By default, occurrences of ``$<EnvironmentVarName>`` that are NOT
+        associated with any environment variable are not replaced. Setting
+        ``to_empty_string`` to True will change them to empty string.
+
         """
         for name, value in environment.items():
             text = text.replace(
                 "$<%s>" % name,
                 value.replace("\\", "\\\\").replace("\"", "\\\""))
+        if to_empty_string:
+            text = re.sub(Driver.ENV_VAR_REGEX, "", text)
         return text
 
     ENV_VAR_REGEX = re.compile(r"\$<[\w\d][\w\d_]*>", re.IGNORECASE)
@@ -274,7 +281,8 @@ class Driver(object):
         for token in tokenizer:
             expand = not (posix_shell and token[0] == "'" and token[-1] == "'")
             if expand:
-                token = Driver.expand_environment_vars(token, environments)
+                token = Driver.expand_environment_vars(
+                    token, environments, to_empty_string=True)
 
             if tokenizer.lineno > lineno:
                 expanded_lines.append(" ".join(expanded_tokens))

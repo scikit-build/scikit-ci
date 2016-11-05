@@ -352,9 +352,9 @@ def _expand_command_test(command, posix_shell, expected):
 
 
 @pytest.mark.parametrize("command, posix_shell, expected", [
-    (r"""echo "$<FO>", "$<B>", $<FO>""", False, 'echo "foo" , "$<B>" , foo'),
-    (r"""echo '$<FO>', '$<B>', $<FO>""", False, "echo 'foo' , '$<B>' , foo"),
-    (r"""echo "$<FO>", "$<B>", $<FO>""", True, 'echo "foo" , "$<B>" , foo'),
+    (r"""echo "$<FO>", "$<B>", $<FO>""", False, 'echo "foo" , "" , foo'),
+    (r"""echo '$<FO>', '$<B>', $<FO>""", False, "echo 'foo' , '' , foo"),
+    (r"""echo "$<FO>", "$<B>", $<FO>""", True, 'echo "foo" , "" , foo'),
     (r"""echo '$<FO>', '$<B>', $<FO>""", True, "echo '$<FO>' , '$<B>' , foo"),
 ])
 def test_expand_command(command, posix_shell, expected):
@@ -363,7 +363,7 @@ def test_expand_command(command, posix_shell, expected):
 
 @pytest.mark.parametrize("command, posix_shell, expected", [
     (r"""echo "$<FO>", \
-"$<B>", $<FO>""", True, 'echo "foo" , "$<B>" , foo'),
+"$<B>", $<FO>""", True, 'echo "foo" , "" , foo'),
     (r"""echo '$<FO>', \
 '$<B>', $<FO>""", True, "echo '$<FO>' , '$<B>' , foo"),
 ])
