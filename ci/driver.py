@@ -111,7 +111,7 @@ class Driver(object):
 
     class PythonCommandConfig(object):
         shell = "python"
-        subprocess_shell_mode = False
+        subprocess_shell_mode = True
         shell_options = ["-B"]
         use_script = True
         script_suffix = ".py"
@@ -165,6 +165,8 @@ class Driver(object):
                 shell_cmd = [cmd_config.shell]
                 shell_cmd.extend(cmd_config.shell_options)
                 shell_cmd.append(script_file.name)
+                if cmd_config.subprocess_shell_mode:
+                    shell_cmd = " ".join(['"%s"' % arg for arg in shell_cmd])
                 args = [shell_cmd]
                 # And finally execute
                 subprocess.check_call(*args, **kwds)
