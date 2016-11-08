@@ -2,13 +2,9 @@ schema_version: "0.5.0"
 
 before_install:
 
-  environment:
-    PYTHON: python
-    RUN_ENV: ""
-
   appveyor:
     environment:
-      PYTHON: $<PYTHON_DIR>\\python.exe
+      PATH: $<PYTHON_DIR>;$<PYTHON_DIR>\\Scripts;$<PATH>
 
   travis:
     osx:
@@ -19,28 +15,23 @@ before_install:
 
 install:
   commands:
-    - $<RUN_ENV> $<PYTHON> -m pip install --disable-pip-version-check --upgrade pip
-    - $<RUN_ENV> $<PYTHON> -m pip install -r requirements.txt
-    - $<RUN_ENV> $<PYTHON> -m pip install -r requirements-dev.txt
+    - $<RUN_ENV> python -m pip install --disable-pip-version-check --upgrade pip
+    - $<RUN_ENV> pip install -r requirements.txt
+    - $<RUN_ENV> pip install -r requirements-dev.txt
 
 before_build:
   commands:
-    - $<RUN_ENV> $<PYTHON> -m flake8
+    - $<RUN_ENV> flake8
 
 build:
   commands:
-    - $<RUN_ENV> $<PYTHON> setup.py build
+    - $<RUN_ENV> python setup.py sdist
+    - $<RUN_ENV> python setup.py bdist_wheel
 
 test:
-
-  appveyor:
-    environment:
-      PATH: $<PYTHON_DIR>\\Scripts;$<PATH>
-
   commands:
-    - $<RUN_ENV> $<PYTHON> setup.py test
+    - $<RUN_ENV> python setup.py test
 
 after_test:
   commands:
     - $<RUN_ENV> codecov -X gcov --required --file ./tests/coverage.xml
-    - $<RUN_ENV> $<PYTHON> setup.py bdist_wheel
