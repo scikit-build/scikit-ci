@@ -270,31 +270,41 @@ class Driver(object):
         and
         https://www.gnu.org/software/bash/manual/html_node/Single-Quotes.html
         """
-        # Strip line continuation characters. There are not required
-        # successfully evaluate the expression and were confusion shlex.
-        if posix_shell:
-            command = command.replace("\\\n", "")
+        if not posix_shell:
+            return Driver.expand_environment_vars(
+                    command, environments, to_empty_string=True)
 
-        tokenizer = shlex.shlex(command, posix=False)
-        tokenizer.whitespace_split = True
+        # Strip line continuation characters. There are not required to
+        # successfully evaluate the expression and are confusing shlex.
+        command = command.replace("\\\n", "")
+
+        def _indent_size(txt):
+            count = 0
+            for char in txt:
+                if char != ' ':
+                    break
+                count += 1
+            return count
+
         expanded_lines = []
-        expanded_tokens = []
-        lineno = 1
-        for token in tokenizer:
-            expand = not (posix_shell and token[0] == "'" and token[-1] == "'")
-            if expand:
-                token = Driver.expand_environment_vars(
-                    token, environments, to_empty_string=True)
 
-            if tokenizer.lineno > lineno:
-                expanded_lines.append(" ".join(expanded_tokens))
-                expanded_tokens = []
+        # Proceed to the expansion line by line
+        for line in command.splitlines():
+            if line.startswith("#") or line == "":
+                expanded_lines.append(line)
+                continue
+            indent = _indent_size(line)
+            tokenizer = shlex.shlex(line, posix=False)
+            tokenizer.whitespace_split = True
+            expanded_tokens = []
+            for token in tokenizer:
+                expand = not (token[0] == "'" and token[-1] == "'")
+                if expand:
+                    token = Driver.expand_environment_vars(
+                        token, environments, to_empty_string=True)
+                expanded_tokens.append(token)
 
-            expanded_tokens.append(token)
-            lineno = tokenizer.lineno
-
-        if expanded_tokens:
-            expanded_lines.append(" ".join(expanded_tokens))
+            expanded_lines.append(indent * " " + " ".join(expanded_tokens))
 
         return "\n".join(expanded_lines)
 
