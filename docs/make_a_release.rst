@@ -23,13 +23,13 @@ A core developer should use the following steps to create a release of
 
 4. Upload the packages to the testing PyPI instance::
 
-    twine upload -r pypitest dist/*
+    twine upload --sign -r pypitest dist/*
 
 5. Check the `PyPI testing package page <https://testpypi.python.org/pypi/scikit-ci/>`_.
 
 6. Upload the packages to the PyPI instance::
 
-    twine upload dist/*
+    twine upload --sign dist/*
 
 7. Check the `PyPI package page <https://pypi.python.org/pypi/scikit-ci/>`_.
 
