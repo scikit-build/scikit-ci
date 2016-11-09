@@ -5,7 +5,7 @@ How to Make a Release
 A core developer should use the following steps to create a release of
 **scikit-ci**.
 
-0. Configure `~/.pypirc` as described `here <http://peterdowns.com/posts/first-time-with-pypi.html>`_.
+0. Configure `~/.pypirc` as described `here <https://packaging.python.org/distributing/#uploading-your-project-to-pypi>`_.
 
 1. Make sure that all CI tests are passing.
 
