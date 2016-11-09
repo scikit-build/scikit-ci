@@ -322,10 +322,18 @@ def test_multi_line_shell_command(tmpdir, capfd):
                   if [[ "bar" == "bar" ]]; then
                     echo "bar is bar"
                   fi
+
+                  # This is a comment
+                  # .. and an other one
+                  for letter in $(echo a) \
+                        $(echo b); do
+                      echo the letter $letter -in "/text/"
+                  done
             """
         ).format(version=SCHEMA_VERSION))
         service = 'circle'
-        offset = 6
+        # Number of lines in the command  (without line continuation)
+        offset = 13
 
     for step, system, environment in scikit_steps(tmpdir, service):
 
@@ -337,6 +345,8 @@ def test_multi_line_shell_command(tmpdir, capfd):
             assert output_lines[offset + 1] == "var foo"
             assert output_lines[offset + 2] == "var bar"
             assert output_lines[offset + 3] == "bar is bar"
+            assert output_lines[offset + 4] == "the letter a -in /text/"
+            assert output_lines[offset + 5] == "the letter b -in /text/"
         else:
             assert len(output_lines) == 0
 
@@ -352,8 +362,8 @@ def _expand_command_test(command, posix_shell, expected):
 
 
 @pytest.mark.parametrize("command, posix_shell, expected", [
-    (r"""echo "$<FO>", "$<B>", $<FO>""", False, 'echo "foo" , "" , foo'),
-    (r"""echo '$<FO>', '$<B>', $<FO>""", False, "echo 'foo' , '' , foo"),
+    (r"""echo "$<FO>", "$<B>", $<FO>""", False, 'echo "foo", "", foo'),
+    (r"""echo '$<FO>', '$<B>', $<FO>""", False, "echo 'foo', '', foo"),
     (r"""echo "$<FO>", "$<B>", $<FO>""", True, 'echo "foo" , "" , foo'),
     (r"""echo '$<FO>', '$<B>', $<FO>""", True, "echo '$<FO>' , '$<B>' , foo"),
 ])
