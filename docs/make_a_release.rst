@@ -9,7 +9,11 @@ A core developer should use the following steps to create a release of
 
 1. Make sure that all CI tests are passing.
 
-2. Create the source tarball and binary wheels::
+2. Tag the release. Requires a GPG key with signatures. For version *X.Y.Z*::
+
+    git tag -s -m "scikit-ci X.Y.Z" X.Y.Z upstream/master
+
+3. Create the source tarball and binary wheels::
 
     git checkout master
     git fetch upstream
@@ -17,15 +21,11 @@ A core developer should use the following steps to create a release of
     rm -rf dist/
     python setup.py sdist bdist_wheel
 
-3. Upload the packages to the testing PyPI instance::
+4. Upload the packages to the testing PyPI instance::
 
     twine upload -r pypitest dist/*
 
-4. Check the `PyPI testing package page <https://testpypi.python.org/pypi/scikit-ci/>`_.
-
-5. Tag the release. Requires a GPG key with signatures. For version *X.Y.Z*::
-
-    git tag -s -m "scikit-ci X.Y.Z" X.Y.Z upstream/master
+5. Check the `PyPI testing package page <https://testpypi.python.org/pypi/scikit-ci/>`_.
 
 6. Upload the packages to the PyPI instance::
 
