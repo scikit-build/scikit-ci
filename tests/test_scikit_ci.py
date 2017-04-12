@@ -246,15 +246,21 @@ def test_dependent_steps():
     assert dependent_steps(step) == expected
 
 
-def test_shell_command(tmpdir, capfd):
+def test_shell_for_loop(tmpdir, capfd):
 
     if platform.system().lower() == "windows":
+        # Since executing windows terminal command is not supported
+        # on appveyor, we do not test for it.
+        # That said, here is an example of should be expected to work:
+        #   FOR %G IN (foo bar) DO python -c "print('var %G')"
         tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
             r"""
             schema_version: "{version}"
             install:
               commands:
-                - FOR %G IN (foo bar) DO python -c "print('var %G')"
+                - |
+                  echo var foo
+                  echo var bar
             """
         ).format(version=SCHEMA_VERSION))
         service = 'appveyor'
@@ -279,12 +285,115 @@ def test_shell_command(tmpdir, capfd):
         if step == 'install':
             if platform.system().lower() == "windows":
                 assert output_lines[3] == "var foo"
-                assert output_lines[6] == "var bar"
+                assert output_lines[4] == "var bar"
             else:
                 assert output_lines[1] == "var foo"
                 assert output_lines[2] == "var bar"
                 assert output_lines[4] == "var: oof"
                 assert output_lines[5] == "var: rab"
+        else:
+            assert len(output_lines) == 0
+
+
+def test_shell_command_with_quoted_args(tmpdir, capfd):
+
+    program = tmpdir.join("program.py")
+    program.write(textwrap.dedent(
+        """
+        import sys
+        for index, arg in enumerate(sys.argv):
+            if index == 0:
+                continue
+            print("arg_%s [%s]" % (index, sys.argv[index]))
+        """
+    ))
+
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "{version}"
+        install:
+          commands:
+            - echo Hello1
+            - echo "Hello2"
+            - echo 'Hello3'
+            - python -c "print('Hello4')"
+            - python -c 'print("Hello5")'
+            - python -c "print('Hello6\'World')"
+            - python program.py --things "foo" "bar" --more-things "doo" 'dar'
+            - python program.py --the-foo="foo" -the-bar='bar'
+
+        """  # noqa: E501
+    ).format(version=SCHEMA_VERSION))
+    service = 'appveyor' if platform.system().lower() == "windows" else "circle"
+
+    for step, system, environment in scikit_steps(tmpdir, service):
+
+        with push_dir(str(tmpdir)), push_env(**environment):
+            execute_step(step)
+            output_lines, _ = strip_ascii_art(captured_lines(capfd))
+
+        if step == 'install':
+
+            # Command 1
+            offset = 0
+            output_line_count = 1
+            assert output_lines[1 + offset] == "Hello1"
+
+            # Command 2
+            offset = offset + 1 + output_line_count
+            output_line_count = 1
+            if HAS_COMSPEC:
+                assert output_lines[1 + offset] == "\"Hello2\""
+            else:
+                assert output_lines[1 + offset] == "Hello2"
+
+            # Command 3
+            offset = offset + 1 + output_line_count
+            output_line_count = 1
+            if HAS_COMSPEC:
+                assert output_lines[1 + offset] == "'Hello3'"
+            else:
+                assert output_lines[1 + offset] == "Hello3"
+
+            # Command 4
+            offset = offset + 1 + output_line_count
+            output_line_count = 1
+            assert output_lines[1 + offset] == "Hello4"
+
+            # Command 5
+            offset = offset + 1 + output_line_count
+            if HAS_COMSPEC:
+                output_line_count = 0
+            else:
+                output_line_count = 1
+                assert output_lines[1 + offset] == "Hello5"
+
+            # Command 6
+            offset = offset + 1 + output_line_count
+            output_line_count = 1
+            assert output_lines[1 + offset] == "Hello6'World"
+
+            # Command 7
+            offset = offset + 1 + output_line_count
+            output_line_count = 6
+            assert output_lines[1 + offset] == "arg_1 [--things]"
+            assert output_lines[2 + offset] == "arg_2 [foo]"
+            assert output_lines[3 + offset] == "arg_3 [bar]"
+            assert output_lines[4 + offset] == "arg_4 [--more-things]"
+            assert output_lines[5 + offset] == "arg_5 [doo]"
+            if HAS_COMSPEC:
+                assert output_lines[6 + offset] == "arg_6 ['dar']"
+            else:
+                assert output_lines[6 + offset] == "arg_6 [dar]"
+
+            # Command 8
+            offset = offset + 1 + output_line_count
+            # output_line_count = 2
+            assert output_lines[1 + offset] == "arg_1 [--the-foo=foo]"
+            if HAS_COMSPEC:
+                assert output_lines[2 + offset] == "arg_2 [-the-bar='bar']"
+            else:
+                assert output_lines[2 + offset] == "arg_2 [-the-bar=bar]"
         else:
             assert len(output_lines) == 0
 
@@ -627,8 +736,11 @@ def test_within_environment_expansion(tmpdir, capfd):
     environment = dict(os.environ)
     enable_service(service, environment)
 
-    quote_type = "'" if HAS_COMSPEC else "\""
-    backslashes = "\\\\\\\\" if HAS_COMSPEC else "\\"
+    # quote_type = "'" if HAS_COMSPEC else "\""
+    # backslashes = "\\\\\\\\" if HAS_COMSPEC else "\\"
+
+    quote_type = "'"  # if HAS_COMSPEC else "\""
+    backslashes = "\\"
 
     environment["WHAT"] = "world"
     environment["STRING"] = "of " + quote_type + "wonders" + quote_type
