@@ -85,14 +85,18 @@ class Driver(object):
             shell = "cmd.exe"
             subprocess_shell_mode = True
             shell_options = ["/E:ON", "/V:ON", "/c"]
-            use_script = False
+            use_script = True
             script_suffix = ".cmd"
-            script_pre_code = ""
+            script_pre_code = "@echo off"
             script_post_code = ""
 
             @staticmethod
             def escape_cmd(cmd):
-                return "\"%s\"" % cmd.replace("\\\\", "\\\\\\\\")
+                return cmd.replace("%", "%%").replace("\\\\", "\\")
+
+            @staticmethod
+            def unescape_cmd(cmd):
+                return cmd.replace("%", "%%").replace("\\", "\\\\")
 
     else:
 
@@ -109,6 +113,10 @@ class Driver(object):
             def escape_cmd(cmd):
                 return cmd
 
+            @staticmethod
+            def unescape_cmd(cmd):
+                return cmd
+
     class PythonCommandConfig(object):
         shell = "python"
         subprocess_shell_mode = True
@@ -120,6 +128,10 @@ class Driver(object):
 
         @staticmethod
         def escape_cmd(cmd):
+            return cmd
+
+        @staticmethod
+        def unescape_cmd(cmd):
             return cmd
 
     @staticmethod
@@ -138,11 +150,13 @@ class Driver(object):
             script = cmd
             script_lines = script.splitlines()
             if len(script_lines) == 1:
-                self.log("[scikit-ci] Executing: %s" % script)
+                self.log("[scikit-ci] Executing: %s" % cmd_config.unescape_cmd(
+                    script))
             else:
                 self.log("[scikit-ci] Executing:")
                 prefix = " " * len("[scikit-ci] ") + "  "
-                for line in utils.indent(script, prefix).splitlines():
+                for line in utils.indent(cmd_config.unescape_cmd(script),
+                                         prefix).splitlines():
                     self.log(line)
 
             def _write(output_stream, txt):

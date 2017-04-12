@@ -203,6 +203,9 @@ The output on the different service will be the following:
     Hello on TravisCI
 
 
+.. note:: Sections :ref:`command_specification` and :ref:`python_command_specification`
+          describe the different types of command.
+
 Environment
 ^^^^^^^^^^^
 
@@ -316,9 +319,114 @@ The output on the different service will be the following:
           .. autoclass:: ci.driver.Driver
              :members: expand_command
 
+.. _command_specification:
 
-Python Commands
----------------
+Command Specification
+---------------------
+
+Specifying command composed of a program name and arguments is supported on all
+platforms.
+
+For example:
+
+.. code-block:: yaml
+
+  test:
+    commands:
+      - echo "Hello"
+      - python -c "print('world')"
+      - git clone git://github.com/scikit-build/scikit-ci
+
+On unix based platforms (e.g CircleCI and TravisCI), commands are interpreted
+using ``bash``.
+
+On windows based platform (e.g Appveyor), commands are
+interpreted using the windows command terminal ``cmd.exe``.
+
+Since both interpreters expand quotes differently, we recommend to avoid single
+quoting argument. The following table list working recipes:
+
+
+.. table::
+
+    +----------------------------------------+----------------------------+-----------------------------------+
+    |                                        |  CircleCi, TravisCI        | Appveyor                          |
+    +========================================+============================+===================================+
+    | **scikit-ci command**                  |  **bash output**           | **cmd output**                    |
+    +----------------------------------------+----------------------------+-----------------------------------+
+    | ``echo Hello1``                        |  Hello1                    | Hello1                            |
+    +----------------------------------------+----------------------------+-----------------------------------+
+    | ``echo "Hello2"``                      |  Hello2                    | "Hello2"                          |
+    +----------------------------------------+----------------------------+-----------------------------------+
+    | ``echo 'Hello3'``                      |  Hello3                    | 'Hello3'                          |
+    +----------------------------------------+----------------------------+-----------------------------------+
+    | ``python -c "print('Hello4')"``        |  Hello4                    | Hello4                            |
+    +----------------------------------------+----------------------------+-----------------------------------+
+    | ``python -c 'print("Hello5")'``        |  Hello5                    | ``no output``                     |
+    +----------------------------------------+----------------------------+-----------------------------------+
+    | ``python -c "print('Hello6\'World')"`` |  Hello6'World              | Hello6'World                      |
+    +----------------------------------------+----------------------------+-----------------------------------+
+
+And here are the values associated with ``sys.argv`` for different scikit-ci commands:
+
+::
+
+    python program.py --things "foo" "bar" --more-things "doo" 'dar'
+
+
+Output on CircleCi, TravisCI::
+
+     arg_1 [--things]
+     arg_2 [foo]
+     arg_3 [bar]
+     arg_4 [--more-things]
+     arg_5 [doo]
+     arg_6 [dar]
+
+
+Output on Appveyor::
+
+     arg_1 [--things]
+     arg_2 [foo]
+     arg_3 [bar]
+     arg_4 [--more-things]
+     arg_5 [doo]
+     arg_6 ['dar']    # <-- Note the presence of single quotes
+
+
+::
+
+    python program.py --things "foo" "bar" --more-things "doo" 'dar'
+
+
+Output on CircleCi, TravisCI::
+
+     arg_1 [--the-foo=foo]
+     arg_2 [-the-bar=bar]
+
+Output on Appveyor::
+
+     arg_1 [--the-foo=foo]
+     arg_2 [-the-bar='bar']    # <-- Note the presence of single quotes
+
+
+.. note::
+
+    Here are the source of ``program.py``:
+
+    .. code-block:: python
+
+        import sys
+        for index, arg in enumerate(sys.argv):
+            if index == 0:
+                continue
+            print("arg_%s [%s]" % (index, sys.argv[index]))
+
+
+.. _python_command_specification:
+
+Python Command Specification
+----------------------------
 
 .. versionadded:: 0.10.0
 
