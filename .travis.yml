@@ -41,11 +41,14 @@ cache:
 before_install:
   - |
     BOOTSTRAP_BRANCH=$TRAVIS_PULL_REQUEST_BRANCH
+    BOOTSTRAP_REPO_SLUG=$TRAVIS_PULL_REQUEST_SLUG
     if [[ $BOOTSTRAP_BRANCH == "" ]]; then
       BOOTSTRAP_BRANCH=$TRAVIS_BRANCH
+      BOOTSTRAP_REPO_SLUG=$TRAVIS_REPO_SLUG
     fi
     echo "BOOTSTRAP_BRANCH:$BOOTSTRAP_BRANCH"
-    git clone git://github.com/scikit-build/scikit-ci -b $BOOTSTRAP_BRANCH ../boostrap-scikit-ci
+    echo "BOOTSTRAP_REPO_SLUG:$BOOTSTRAP_REPO_SLUG"
+    git clone git://github.com/$BOOTSTRAP_REPO_SLUG -b $BOOTSTRAP_BRANCH ../boostrap-scikit-ci
     pip install -U ../boostrap-scikit-ci
 
   - pip install scikit-ci-addons==0.11.0
