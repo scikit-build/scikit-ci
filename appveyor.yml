@@ -7,8 +7,6 @@ branches:
 version: "0.0.1.{build}"
 
 environment:
-  GH_CMDLINE_TOKEN:
-    secure: 8qYavC/JSRbc77YFoPEyjD8jaBjNGRXyBMjXQAIYi6En1ymsG0Mucxt1m79osNc0
   matrix:
 
     - PYTHON_DIR: "C:\\Python27-x64"
@@ -25,9 +23,10 @@ init:
 
   - ps: |
         $env:BOOTSTRAP_BRANCH = $env:APPVEYOR_REPO_BRANCH
+        $env:BOOTSTRAP_REPO_SLUG = $env:APPVEYOR_REPO_NAME
         if($env:APPVEYOR_PULL_REQUEST_NUMBER -ne $null) {
           #
-          # Since AppVeyor provides only the PR numbder, retrieve
+          # Since AppVeyor provides only the PR number, retrieve
           # PR branch name directly from GitHub
           #
           # See also https://developer.github.com/v3/pulls/#get-a-single-pull-request
@@ -36,16 +35,18 @@ init:
           $env:BOOTSTRAP_BRANCH=(Invoke-WebRequest            `
             -Uri $GitHubUri                                  `
             -Headers @{                                      `
-              "Authorization"="token $env:GH_CMDLINE_TOKEN"; `
               "Accept"= "application/vnd.github.v3.raw"      `
             } | ConvertFrom-Json).head.ref
+          $env:BOOTSTRAP_REPO_SLUG=(Invoke-WebRequest            `
+            -Uri $GitHubUri                                  `
+            -Headers @{                                      `
+              "Accept"= "application/vnd.github.v3.raw"      `
+            } | ConvertFrom-Json).head.repo.full_name
         }
+        Write-Host "BOOTSTRAP_REPO_SLUG:$env:BOOTSTRAP_REPO_SLUG"
         Write-Host "BOOTSTRAP_BRANCH:$env:BOOTSTRAP_BRANCH"
 
-        # Clear GH_CMDLINE_TOKEN variable
-        Remove-Item Env:GH_CMDLINE_TOKEN
-
-  - git clone git://github.com/scikit-build/scikit-ci -b %BOOTSTRAP_BRANCH% ../bootstrap-scikit-ci
+  - git clone git://github.com/%BOOTSTRAP_REPO_SLUG% -b %BOOTSTRAP_BRANCH% ../bootstrap-scikit-ci
   - python.exe -m pip install -U ../bootstrap-scikit-ci/
 
 # scikit-ci-yml.rst: start
