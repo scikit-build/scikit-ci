@@ -1,0 +1,79 @@
+
+initialize-venv: &initialize-venv
+  name: Initialize Virtual Environment
+  command: |
+    python -m virtualenv ../venv || python -m venv ../venv
+    . ../venv/bin/activate
+
+ci-steps: &ci-steps
+  steps:
+    - checkout
+    - run:
+        <<: *initialize-venv
+    - run:
+        name: Install scikit-ci
+        command: |
+          . ../venv/bin/activate
+          BOOTSTRAP_BRANCH=$CIRCLE_BRANCH
+          BOOTSTRAP_REPO_SLUG=$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME
+          if [[ $CIRCLE_PR_USERNAME != "" ]]; then
+            BOOTSTRAP_BRANCH=$(curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.ref')
+            BOOTSTRAP_REPO_SLUG=$CIRCLE_PR_USERNAME/$CIRCLE_PR_REPONAME
+          fi
+          echo "BOOTSTRAP_BRANCH:$BOOTSTRAP_BRANCH"
+          echo "BOOTSTRAP_REPO_SLUG:$BOOTSTRAP_REPO_SLUG"
+          git clone git://github.com/$BOOTSTRAP_REPO_SLUG -b $BOOTSTRAP_BRANCH ../bootstrap-scikit-ci
+          pip install -U ../bootstrap-scikit-ci
+    - run:
+        name: Install dependencies
+        command: |
+          . ../venv/bin/activate
+          ci install
+    - run:
+        name: Flake8
+        command: |
+          . ../venv/bin/activate
+          ci before_build
+    - run:
+        name: Build
+        command: |
+          . ../venv/bin/activate
+          ci build
+    - run:
+        name: Test
+        command: |
+          . ../venv/bin/activate
+          ci test
+    - run:
+        name: Coverage
+        command: |
+          . ../venv/bin/activate
+          ci after_test
+
+version: 2
+jobs:
+  python27:
+    docker:
+      - image: circleci/python:2.7.15-jessie
+    <<: *ci-steps
+  python35:
+    docker:
+      - image: circleci/python:3.5.5-jessie
+    <<: *ci-steps
+  python36:
+    docker:
+      - image: circleci/python:3.6.6-jessie
+    <<: *ci-steps
+  python37:
+    docker:
+      - image: circleci/python:3.7.0-stretch
+    <<: *ci-steps
+
+workflows:
+  version: 2
+  test-package-publish:
+    jobs:
+      - python27
+      - python35
+      - python36
+      - python37
