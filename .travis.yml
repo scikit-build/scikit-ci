@@ -39,6 +39,7 @@ cache:
     - $HOME/.pyenv/versions/2.7.12
 
 before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mkdir $HOME/bin; ln -s $(which pip2) $HOME/bin/pip; fi
   - |
     BOOTSTRAP_BRANCH=$TRAVIS_PULL_REQUEST_BRANCH
     BOOTSTRAP_REPO_SLUG=$TRAVIS_PULL_REQUEST_SLUG
