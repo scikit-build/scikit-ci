@@ -22,7 +22,7 @@ environment:
       BLOCK: "0"
 
 init:
-  - python.exe -m pip install scikit-ci-addons==0.11.0
+  - python.exe -m pip install -U scikit-ci-addons
   - python.exe -m ci_addons --install ../addons
 
   - ps: ../addons/appveyor/rolling-build.ps1

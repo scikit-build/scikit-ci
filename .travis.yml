@@ -55,7 +55,7 @@ before_install:
     git clone git://github.com/$BOOTSTRAP_REPO_SLUG -b $BOOTSTRAP_BRANCH ../boostrap-scikit-ci
     pip install -U ../boostrap-scikit-ci
 
-  - pip install scikit-ci-addons==0.11.0
+  - pip install -U scikit-ci-addons
   - ci_addons --install ../addons
 
 # scikit-ci-yml.rst: start
