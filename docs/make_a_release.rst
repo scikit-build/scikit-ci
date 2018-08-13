@@ -1,40 +1,196 @@
-=====================
-How to Make a Release
-=====================
+.. _making_a_release:
 
-A core developer should use the following steps to create a release of
-**scikit-ci**.
+================
+Making a release
+================
 
-0. Configure `~/.pypirc` as described `here <https://packaging.python.org/distributing/#uploading-your-project-to-pypi>`_.
+A core developer should use the following steps to create a release `X.Y.Z` of
+**scikit-ci** on `PyPI`_.
 
-1. Make sure that all CI tests are passing.
+-------------
+Prerequisites
+-------------
 
-2. Tag the release. Requires a GPG key with signatures. For version *X.Y.Z*::
+* All CI tests are passing on `AppVeyor`_, `CircleCI`_ and `Travis CI`_.
 
-    git tag -s -m "scikit-ci X.Y.Z" X.Y.Z upstream/master
+* You have a `GPG signing key <https://help.github.com/articles/generating-a-new-gpg-key/>`_.
 
-3. Create the source tarball and binary wheels::
+-------------------------
+Documentation conventions
+-------------------------
 
-    git checkout master
-    git fetch upstream
-    git reset --hard upstream/master
-    rm -rf dist/
-    python setup.py sdist bdist_wheel
+The commands reported below should be evaluated in the same terminal session.
 
-4. Upload the packages to the testing PyPI instance::
+Commands to evaluate starts with a dollar sign. For example::
 
-    twine upload --sign -r pypitest dist/*
+  $ echo "Hello"
+  Hello
 
-5. Check the `PyPI testing package page <https://testpypi.python.org/pypi/scikit-ci/>`_.
+means that ``echo "Hello"`` should be copied and evaluated in the terminal.
 
-6. Upload the packages to the PyPI instance::
+----------------------
+Setting up environment
+----------------------
 
-    twine upload --sign dist/*
+1. First, `register for an account on PyPI <https://pypi.org>`_.
 
-7. Check the `PyPI package page <https://pypi.python.org/pypi/scikit-ci/>`_.
 
-8. Make sure the package can be installed::
+2. If not already the case, ask to be added as a ``Package Index Maintainer``.
 
-    mkvirtualenv test-pip-install
-    pip install scikit-ci
-    rmvirtualenv test-pip-install
+
+3. Create a ``~/.pypirc`` file with your login credentials::
+
+    [distutils]
+    index-servers =
+      pypi
+      pypitest
+
+    [pypi]
+    username=<your-username>
+    password=<your-password>
+
+    [pypitest]
+    repository=https://test.pypi.org/legacy/
+    username=<your-username>
+    password=<your-password>
+
+  where ``<your-username>`` and ``<your-password>`` correspond to your PyPI account.
+
+
+---------------------
+`PyPI`_: Step-by-step
+---------------------
+
+1. Make sure that all CI tests are passing on `AppVeyor`_, `CircleCI`_ and `Travis CI`_.
+
+
+2. Download the latest sources
+
+  .. code::
+
+    $ cd /tmp && \
+      git clone git@github.com:scikit-build/scikit-ci && \
+      cd scikit-ci
+
+
+3. List all tags sorted by version
+
+  .. code::
+
+    $ git fetch --tags && \
+      git tag -l | sort -V
+
+
+4. Choose the next release version number
+
+  .. code::
+
+    $ release=X.Y.Z
+
+  .. warning::
+
+      To ensure the packages are uploaded on `PyPI`_, tags must match this regular
+      expression: ``^[0-9]+(\.[0-9]+)*(\.post[0-9]+)?$``.
+
+
+5. In `README.rst`, update `PyPI`_ download count after running `this big table query <https://bigquery.cloud.google.com/savedquery/280188050539:ef89d872d6784e379d7153872901b00d>`_
+   and commit the changes.
+
+  .. code::
+
+    $ git add README.rst && \
+      git commit -m "README: Update download stats [ci skip]"
+
+  ..  note::
+
+    To learn more about `pypi-stats`, see `How to get PyPI download statistics <https://kirankoduru.github.io/python/pypi-stats.html>`_.
+
+
+6. In `CHANGES.rst` replace ``Next Release`` section header with
+   ``Scikit-ci X.Y.Z`` and commit the changes.
+
+  .. code::
+
+    $ git add CHANGES.rst && \
+      git commit -m "Scikit-ci ${release}"
+
+
+7. Tag the release
+
+  .. code::
+
+    $ git tag --sign -m "Scikit-ci ${release}" ${release} origin/master
+
+  .. warning::
+
+      We recommend using a `GPG signing key <https://help.github.com/articles/generating-a-new-gpg-key/>`_
+      to sign the tag.
+
+
+8. Create the source distribution and wheel
+
+  .. code::
+
+    $ python setup.py sdist bdist_wheel
+
+
+9. Publish the release tag
+
+  .. code::
+
+    $ git push origin ${release}
+
+
+10. Upload the distributions on `PyPI`_
+
+  .. code::
+
+    twine upload dist/*
+
+  .. note::
+
+    To first upload on `TestPyPI`_ , do the following::
+
+        $ twine upload -r pypitest dist/*
+
+
+11. Create a clean testing environment to test the installation
+
+  .. code::
+
+    $ mkvirtualenv scikit-ci-${release}-install-test && \
+      pip install scikit-ci && \
+      ci --help
+
+  .. note::
+
+    If the ``mkvirtualenv`` command is not available, this means you do not have `virtualenvwrapper`_
+    installed, in that case, you could either install it or directly use `virtualenv`_ or `venv`_.
+
+    To install from `TestPyPI`_, do the following::
+
+        $ pip install -i https://test.pypi.org/simple scikit-ci
+
+
+12. Cleanup
+
+  .. code::
+
+    $ deactivate  && \
+      rm -rf dist/* && \
+      rmvirtualenv scikit-ci-${release}-install-test
+
+
+13. Add a ``Next Release`` section back in `CHANGES.rst`, commit and push local changes.
+
+
+.. _virtualenvwrapper: https://virtualenvwrapper.readthedocs.io/
+.. _virtualenv: http://virtualenv.readthedocs.io
+.. _venv: https://docs.python.org/3/library/venv.html
+
+.. _AppVeyor: https://ci.appveyor.com/project/scikit-build/scikit-ci/history
+.. _CircleCI: https://circleci.com/gh/scikit-build/scikit-ci
+.. _Travis CI: https://travis-ci.org/scikit-build/scikit-ci/builds
+
+.. _PyPI: https://pypi.org/project/scikit-ci
+.. _TestPyPI: https://test.pypi.org/project/scikit-ci
