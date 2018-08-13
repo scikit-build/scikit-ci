@@ -119,7 +119,7 @@ Setting up environment
 
   .. code::
 
-    $ git tag --sign -m "Scikit-ci ${release}" ${release} origin/master
+    $ git tag --sign -m "Scikit-ci ${release}" ${release} master
 
   .. warning::
 
@@ -134,11 +134,12 @@ Setting up environment
     $ python setup.py sdist bdist_wheel
 
 
-9. Publish the release tag
+9. Publish the both release tag and the master branch
 
   .. code::
 
-    $ git push origin ${release}
+    $ git push origin ${release} && \
+      git push origin master
 
 
 10. Upload the distributions on `PyPI`_
@@ -182,6 +183,12 @@ Setting up environment
 
 
 13. Add a ``Next Release`` section back in `CHANGES.rst`, commit and push local changes.
+
+  .. code::
+
+    $ git add CHANGES.rst && \
+      git commit -m "CHANGES.rst: Add \"Next Release\" section [ci skip]" && \
+      git push origin master
 
 
 .. _virtualenvwrapper: https://virtualenvwrapper.readthedocs.io/
