@@ -14,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 
+from collections import MutableMapping
 try:
     from StringIO import StringIO
 except ImportError:
@@ -397,7 +398,7 @@ class Driver(object):
 
         for cmd in commands:
             language = "default"
-            if isinstance(cmd, dict):
+            if isinstance(cmd, MutableMapping):
                 # Prevent output of debug message.
                 # Workaround https://bitbucket.org/ruamel/yaml/pull-requests/13
                 try:

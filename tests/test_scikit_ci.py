@@ -1135,6 +1135,7 @@ def test_python_cmd(tmpdir, capfd):
           commands:
             - python: print("single_line")
             - python: "for letter in ['a', 'b', 'c']: print(letter)"
+            # This is a comment
             - python: |
                       for index in range(3):
                           with open("file_%s" % index, "w") as output:
