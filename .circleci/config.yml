@@ -6,6 +6,7 @@ initialize-venv: &initialize-venv
     . ../venv/bin/activate
 
 ci-steps: &ci-steps
+  # scikit-ci-yml.rst: start
   steps:
     - checkout
     - run:
@@ -49,6 +50,7 @@ ci-steps: &ci-steps
         command: |
           . ../venv/bin/activate
           ci after_test
+  # scikit-ci-yml.rst: end
 
 version: 2
 jobs:

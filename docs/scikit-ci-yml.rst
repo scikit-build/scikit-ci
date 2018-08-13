@@ -32,12 +32,12 @@ structure:
 
 where ``before_install`` can be replaced by any of these:
 
-- before_install
-- install
-- before_build
-- build
-- test
-- after_test
+- ``before_install``
+- ``install``
+- ``before_build``
+- ``build``
+- ``test``
+- ``after_test``
 
 
 .. _step_mapping:
@@ -50,7 +50,8 @@ scikit-ci do not impose any particular mapping.
 Documentation specific to each services is available here:
 
   - `Appveyor build pipeline <https://www.appveyor.com/docs/build-configuration/#build-pipeline>`_
-  - `CircleCI configuration <https://circleci.com/docs/configuration/>`_
+  - `CircleCI configuration 2.0 <https://circleci.com/docs/2.0/configuration-reference/>`_
+  - `CircleCI configuration 1.0 <https://circleci.com/docs/configuration/>`_ (deprecated)
   - `TravisCI build lifecycle <https://docs.travis-ci.com/user/customizing-the-build/#The-Build-Lifecycle>`_
 
 Reported below are some recommended associations that
@@ -69,10 +70,20 @@ are know to work.
             ``PATH`` by default, the ``python -m ci`` syntax is used.
 
 
-  - ``circle.yml``:
+  - ``.circleci/config.yml`` (CircleCI 2.0):
 
 
-  .. literalinclude:: ../circle.yml
+  .. literalinclude:: ../.circleci/config.yml
+     :language: yaml
+     :start-after: scikit-ci-yml.rst: start
+     :end-before: scikit-ci-yml.rst: end
+     :emphasize-lines: 23, 28, 33, 38, 43
+
+
+  - ``circle.yml`` (CircleCI 1.0):
+
+
+  .. literalinclude:: circle-v1-yml.txt
      :language: yaml
      :start-after: scikit-ci-yml.rst: start
      :end-before: scikit-ci-yml.rst: end
@@ -94,12 +105,12 @@ Order of steps
 
 scikit-ci execute steps considering the following order:
 
-#. before_install
-#. install
-#. before_build
-#. build
-#. test
-#. after_test
+#. ``before_install``
+#. ``install``
+#. ``before_build``
+#. ``build``
+#. ``test``
+#. ``after_test``
 
 This means that the :ref:`mapping specified <step_mapping>` in the continuous
 integration file has to be done accordingly.
