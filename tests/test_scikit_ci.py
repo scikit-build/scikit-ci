@@ -1159,3 +1159,28 @@ def test_python_cmd(tmpdir, capfd):
     assert tmpdir.join("file_0").exists()
     assert tmpdir.join("file_1").exists()
     assert tmpdir.join("file_2").exists()
+
+
+def test_issue39_propagate_command_script_error(tmpdir):
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "{version}"
+        test:
+          commands:
+            # The following command is expected to fail
+            - |
+              $(import foo; print(foo()))
+              $(import bar; print(bar()))
+        """
+    ).format(version=SCHEMA_VERSION))
+
+    service = 'circle'
+
+    environment = dict(os.environ)
+    enable_service(service, environment)
+
+    with push_dir(str(tmpdir)), push_env(**environment):
+        with pytest.raises(
+                SKCIStepExecutionError,
+                message=".*Return code: 2.+Command:.+$(import foo; print(foo())).*"):
+            execute_step("test", with_dependencies=False)
