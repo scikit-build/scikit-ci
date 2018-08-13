@@ -23,6 +23,7 @@ service can be fully described in one ``scikit-ci.yml`` configuration file.
    contributing
    authors
    history
+   changes
 
 .. toctree::
    :maxdepth: 2
