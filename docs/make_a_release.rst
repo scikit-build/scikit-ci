@@ -159,7 +159,8 @@ Setting up environment
 
   .. code::
 
-    $ mkvirtualenv scikit-ci-${release}-install-test && \
+    $ pushd $(mktemp -d) && \
+      mkvirtualenv scikit-ci-${release}-install-test && \
       pip install scikit-ci && \
       ci --help
 
@@ -177,7 +178,8 @@ Setting up environment
 
   .. code::
 
-    $ deactivate  && \
+    $ popd && \
+      deactivate  && \
       rm -rf dist/* && \
       rmvirtualenv scikit-ci-${release}-install-test
 
