@@ -1,0 +1,60 @@
+trigger:
+  - master
+
+jobs:
+  - job: Windows
+
+    pool:
+      vmImage: 'vs2017-win2016'
+
+    strategy:
+      matrix:
+        Python27-x64:
+          python.arch: 'x64'
+          python.version: '2.7'
+#        Python35-x64:
+#          python.arch: 'x64'
+#          python.version: '3.5'
+#        Python36-x64:
+#          python.arch: 'x64'
+#          python.version: '3.6'
+#        Python37-x64:
+#          python.arch: 'x64'
+#          python.version: '3.7'
+      maxParallel: 2
+
+    steps:
+
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: '$(python.version)'
+          addToPath: true
+          architecture: '$(python.arch)'
+
+      - script: |
+          python.exe -m pip install -U scikit-ci-addons
+          python.exe -m ci_addons --install ../addons
+        displayName: Install scikit-ci-addons
+
+      - script: |
+          set BOOTSTRAP_REPO_URI=$(System.PullRequest.SourceRepositoryURI)
+          echo BOOTSTRAP_REPO_URI:%BOOTSTRAP_REPO_URI%
+
+          set BOOTSTRAP_PR_SOURCE_BRANCH=$(System.PullRequest.SourceBranch)
+          echo BOOTSTRAP_PR_SOURCE_BRANCH:%BOOTSTRAP_PR_SOURCE_BRANCH%
+
+          git clone %BOOTSTRAP_REPO_URI% -b %BOOTSTRAP_PR_SOURCE_BRANCH% ../bootstrap-scikit-ci
+          python.exe -m pip install -U ../bootstrap-scikit-ci/
+        displayName: Bootstrap
+
+      - script: python -m ci install
+        displayName: Install
+
+      - script: python -m ci build
+        displayName: Build
+
+      - script: python -m ci test
+        displayName: Test
+
+      - script: python -m ci after_test
+        displayName: After Test
