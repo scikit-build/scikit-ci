@@ -21,7 +21,7 @@ jobs:
         Python37-x64:
           python.arch: 'x64'
           python.version: '3.7'
-      maxParallel: 2
+      maxParallel: 4
 
     steps:
 
