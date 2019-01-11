@@ -8,6 +8,8 @@ details, see the commit logs at http://github.com/scikit-build/scikit-ci
 Next Release
 ============
 
+* Add support for Azure Pipelines
+
 Scikit-ci 0.17.0
 ================
 
