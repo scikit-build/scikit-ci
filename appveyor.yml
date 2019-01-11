@@ -12,12 +12,6 @@ environment:
     - PYTHON_DIR: "C:\\Python27-x64"
       BLOCK: "0"
 
-    - PYTHON_DIR: "C:\\Python35-x64"
-      BLOCK: "0"
-
-    - PYTHON_DIR: "C:\\Python36-x64"
-      BLOCK: "0"
-
     - PYTHON_DIR: "C:\\Python37-x64"
       BLOCK: "0"
 
