@@ -47,14 +47,36 @@ jobs:
           python.exe -m ci_addons --install ../addons
         displayName: Install scikit-ci-addons
 
-      - script: |
-          set BOOTSTRAP_REPO_URI=$(System.PullRequest.SourceRepositoryURI)
-          echo BOOTSTRAP_REPO_URI:%BOOTSTRAP_REPO_URI%
+      - powershell: |
+          $BOOTSTRAP_REPO_SLUG = $env:BUILD_REPOSITORY_NAME
+          $BOOTSTRAP_BRANCH = $env:BUILD_SOURCEBRANCHNAME
+          if($env:SYSTEM_PULLREQUEST_PULLREQUESTNUMBER -ne $null) {
+            #
+            # Since Azure hides the value of "System.PullRequest.SourceRepositoryURI"
+            # for Pull request from fork, retrieve PR repo and branch name directly
+            # from GitHub
+            #
+            # See also https://developer.github.com/v3/pulls/#get-a-single-pull-request
+            #
+            $GitHubUri="https://api.github.com/repos/scikit-build/scikit-ci/pulls/$env:SYSTEM_PULLREQUEST_PULLREQUESTNUMBER"
+            $BOOTSTRAP_BRANCH=(Invoke-WebRequest            `
+              -Uri $GitHubUri                                  `
+              -Headers @{                                      `
+                "Accept"= "application/vnd.github.v3.raw"      `
+              } | ConvertFrom-Json).head.ref
+            $BOOTSTRAP_REPO_SLUG=(Invoke-WebRequest            `
+              -Uri $GitHubUri                                  `
+              -Headers @{                                      `
+                "Accept"= "application/vnd.github.v3.raw"      `
+              } | ConvertFrom-Json).head.repo.full_name
 
-          set BOOTSTRAP_PR_SOURCE_BRANCH=$(System.PullRequest.SourceBranch)
-          echo BOOTSTRAP_PR_SOURCE_BRANCH:%BOOTSTRAP_PR_SOURCE_BRANCH%
+            Write-Output "System.PullRequest.SourceRepositoryURI: $(System.PullRequest.SourceRepositoryURI)"
+          }
+          Write-Output "BUILD_REASON: $env:BUILD_REASON"
+          Write-Output "BOOTSTRAP_REPO_SLUG: $BOOTSTRAP_REPO_SLUG"
+          Write-Output "BOOTSTRAP_BRANCH: $BOOTSTRAP_BRANCH"
 
-          git clone %BOOTSTRAP_REPO_URI% -b %BOOTSTRAP_PR_SOURCE_BRANCH% ../bootstrap-scikit-ci
+          git clone git://github.com/$BOOTSTRAP_REPO_SLUG -b $BOOTSTRAP_BRANCH ../bootstrap-scikit-ci
           python.exe -m pip install -U ../bootstrap-scikit-ci/
         displayName: Bootstrap
 
@@ -68,6 +90,9 @@ jobs:
       - script: python -m ci test
         displayName: Test
 
-      - script: python -m ci after_test
+      - script: |
+          set CODECOV_TOKEN=$(CODECOV_TOKEN)
+          echo CODECOV_TOKEN:%CODECOV_TOKEN%
+          python -m ci after_test
         displayName: After Test
       # scikit-ci-yml.rst: end

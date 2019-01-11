@@ -34,4 +34,5 @@ test:
 
 after_test:
   commands:
+    - echo CODECOV_TOKEN:$<CODECOV_TOKEN>
     - codecov -X gcov --required --file ./tests/coverage.xml
