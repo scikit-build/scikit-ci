@@ -12,15 +12,15 @@ jobs:
         Python27-x64:
           python.arch: 'x64'
           python.version: '2.7'
-#        Python35-x64:
-#          python.arch: 'x64'
-#          python.version: '3.5'
-#        Python36-x64:
-#          python.arch: 'x64'
-#          python.version: '3.6'
-#        Python37-x64:
-#          python.arch: 'x64'
-#          python.version: '3.7'
+        Python35-x64:
+          python.arch: 'x64'
+          python.version: '3.5'
+        Python36-x64:
+          python.arch: 'x64'
+          python.version: '3.6'
+        Python37-x64:
+          python.arch: 'x64'
+          python.version: '3.7'
       maxParallel: 2
 
     steps:
