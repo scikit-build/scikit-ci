@@ -50,6 +50,7 @@ scikit-ci do not impose any particular mapping.
 Documentation specific to each services is available here:
 
   - `Appveyor build pipeline <https://www.appveyor.com/docs/build-configuration/#build-pipeline>`_
+  - `Azure pipelines <https://docs.microsoft.com/en-us/azure/devops/pipelines/>`_
   - `CircleCI configuration 2.0 <https://circleci.com/docs/2.0/configuration-reference/>`_
   - `CircleCI configuration 1.0 <https://circleci.com/docs/configuration/>`_ (deprecated)
   - `TravisCI build lifecycle <https://docs.travis-ci.com/user/customizing-the-build/#The-Build-Lifecycle>`_
@@ -69,6 +70,11 @@ are know to work.
             directory (e.g `C:\\Python27\\Scripts\\ci.exe`) which is not in the
             ``PATH`` by default, the ``python -m ci`` syntax is used.
 
+  - ``azure-pipelines.yml``:
+     :language: yaml
+     :start-after: scikit-ci-yml.rst: start
+     :end-before: scikit-ci-yml.rst: end
+     :emphasize-lines: 1, 4, 7, 10
 
   - ``.circleci/config.yml`` (CircleCI 2.0):
 
@@ -168,6 +174,7 @@ variables specific to each continuous integration service.
 Recognized services are:
 
   - ``appveyor``
+  - ``azure``
   - ``circle``
   - ``travis``
 

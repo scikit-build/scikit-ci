@@ -5,6 +5,7 @@ SCIKIT_CI_CONFIG = "scikit-ci.yml"
 
 SERVICES = {
     "appveyor": None,
+    "azure": "AGENT_OS",
     "circle": None,
     "travis": "TRAVIS_OS_NAME"
 }
@@ -20,6 +21,7 @@ operating system in use. (e.g ``TRAVIS_OS_NAME``).
 
 SERVICES_ENV_VAR = {
     "appveyor": "APPVEYOR",
+    "azure": "TF_BUILD",
     "circle": "CIRCLECI",
     "travis": "TRAVIS",
 }
@@ -36,5 +38,5 @@ STEPS = [
 
 These are the scikit-ci steps to execute. They are expected to
 be mapped to the step recognized by continuous integration
-services like Appveyor, CircleCI or TravisCI.
+services like Appveyor, Azure Pipelines, CircleCI or TravisCI.
 """
