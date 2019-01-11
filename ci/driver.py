@@ -329,7 +329,7 @@ class Driver(object):
         if "CI_NAME" in environment:
             raise ValueError("CI_NAME environment variable can not be set. "
                              "It is reserved to store the name of the current "
-                             "CI service (e.g appveyor, circle or travis.")
+                             "CI service (e.g appveyor, azure, circle or travis.")
 
     @staticmethod
     def parse_config(config_file, stage_name, service_name, global_env):

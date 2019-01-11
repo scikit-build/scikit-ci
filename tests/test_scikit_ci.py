@@ -53,6 +53,7 @@ def enable_service(service, environment=os.environ, operating_system=None):
 
 @pytest.mark.parametrize("service, exception", [
     ('appveyor', None),
+    ('azure', None),
     ('circle', None),
     ('travis', None),
     ('invalid', LookupError)
@@ -85,6 +86,7 @@ def scikit_steps(tmpdir, service):
     # Service supporting multiple operating system (e.g travis) should be
     # specified below.
     osenv_per_service = {
+        "azure": {"Darwin": "AGENT_OS", "Linux": "AGENT_OS", "Windows_NT": "AGENT_OS"},
         "travis": {"linux": "TRAVIS_OS_NAME", "osx": "TRAVIS_OS_NAME"}
     }
 
@@ -128,6 +130,23 @@ def _generate_scikit_yml_content(service):
               SERVICE: appveyor
             commands:
               - $<PYTHON> -c "import os; print('%s / %s' % (os.environ['WHAT'], os.environ['SERVICE']))"
+
+          azure:
+            Darwin:
+              environment:
+                SERVICE: azure-Darwin
+              commands:
+                - $<PYTHON> -c "import os; print('%s / %s / %s' % (os.environ['WHAT'], os.environ['SERVICE'], os.environ['AGENT_OS']))"
+            Linux:
+              environment:
+                SERVICE: azure-Linux
+              commands:
+                - $<PYTHON> -c "import os; print('%s / %s / %s' % (os.environ['WHAT'], os.environ['SERVICE'], os.environ['AGENT_OS']))"
+            Windows_NT:
+              environment:
+                SERVICE: azure-Windows_NT
+              commands:
+                - $<PYTHON> -c "import os; print('%s / %s / %s' % (os.environ['WHAT'], os.environ['SERVICE'], os.environ['AGENT_OS']))"
 
           circle:
             environment:
