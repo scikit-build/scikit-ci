@@ -7,7 +7,7 @@ extensions.
 
 By having ``appveyor.yml``, ``azure-pipelines.yml``, ``circle.yml`` and ``.travis.yml`` calling
 the same scikit-ci command-line executable, all the CI steps for all
-service can be fully described in one ``scikit-ci.yml`` file.
+service can be fully described in one ``scikit-ci.yml`` configuration file.
 
 Latest Release
 --------------

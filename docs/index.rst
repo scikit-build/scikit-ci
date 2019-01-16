@@ -9,7 +9,7 @@ Welcome to scikit-ci's documentation!
 scikit-ci enables a centralized and simpler CI configuration for Python
 extensions.
 
-By having ``appveyor.yml``, ``circle.yml`` and ``.travis.yml`` calling
+By having ``appveyor.yml``, ``azure-pipelines.yml``, ``circle.yml`` and ``.travis.yml`` calling
 the scikit-ci command-line executable, all the CI steps for all
 service can be fully described in one ``scikit-ci.yml`` configuration file.
 
