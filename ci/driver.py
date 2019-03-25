@@ -74,6 +74,7 @@ class Driver(object):
 
     @staticmethod
     def save_env(env, env_file="env.json"):
+        env = {str(k): str(v) for k, v in env.items()}
         with open(env_file, "w") as _file:
             json.dump(env, _file, indent=4)
 
