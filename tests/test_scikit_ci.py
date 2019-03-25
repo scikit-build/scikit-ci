@@ -9,6 +9,7 @@ import textwrap
 
 from ruamel.yaml.compat import ordereddict
 
+import ci
 from . import captured_lines, display_captured_text, push_dir, push_env
 from ci.constants import SERVICES, SERVICES_ENV_VAR, STEPS
 from ci.driver import Driver, dependent_steps, execute_step
@@ -1203,3 +1204,31 @@ def test_issue39_propagate_command_script_error(tmpdir):
                 SKCIStepExecutionError,
                 message=".*Return code: 2.+Command:.+$(import foo; print(foo())).*"):
             execute_step("test", with_dependencies=False)
+
+
+def test_env_file_update_from_step(tmpdir):
+    tmpdir.join('scikit-ci.yml').write(textwrap.dedent(
+        r"""
+        schema_version: "{version}"
+        test:
+          commands:
+            # The following command is expected to fail
+            - python: |
+                      import os
+                      os.environ['SCIKIT_CI_UPDATE_FROM_STEP'] = '1'
+                      import sys
+                      sys.path.insert(0, "{ci_path}")
+                      import ci
+                      ci.driver.Driver.save_env(os.environ)
+        """
+    ).format(version=SCHEMA_VERSION, ci_path=os.path.join(os.path.dirname(ci.__file__), "..")))
+
+    service = 'circle'
+
+    environment = dict(os.environ)
+    enable_service(service, environment)
+
+    with push_dir(str(tmpdir)), push_env(**environment):
+        execute_step("test")
+        env = Driver.read_env()
+        assert env['SCIKIT_CI_UPDATE_FROM_STEP'] == '1'
