@@ -42,8 +42,8 @@ where ``before_install`` can be replaced by any of these:
 
 .. _step_mapping:
 
-Mapping with Appveyor, CircleCI and TravisCI steps
---------------------------------------------------
+Mapping with Appveyor, Azure Pipelines, CircleCI and TravisCI steps
+-------------------------------------------------------------------
 
 scikit-ci do not impose any particular mapping.
 
@@ -71,10 +71,12 @@ are know to work.
             ``PATH`` by default, the ``python -m ci`` syntax is used.
 
   - ``azure-pipelines.yml``:
+
+  .. literalinclude:: ../azure-pipelines.yml
      :language: yaml
      :start-after: scikit-ci-yml.rst: start
      :end-before: scikit-ci-yml.rst: end
-     :emphasize-lines: 1, 4, 7, 10
+     :emphasize-lines: 1, 4, 7, 12
 
   - ``.circleci/config.yml`` (CircleCI 2.0):
 
@@ -93,7 +95,7 @@ are know to work.
      :language: yaml
      :start-after: scikit-ci-yml.rst: start
      :end-before: scikit-ci-yml.rst: end
-     :emphasize-lines: 6, 10, 16
+     :emphasize-lines: 15, 19, 25
 
 
   - ``.travis.yml``
