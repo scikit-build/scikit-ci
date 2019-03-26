@@ -33,12 +33,19 @@ class DriverContext(object):
 
     def __enter__(self):
         self.driver.load_env(self.env_file)
+        self.env_file_modified_time = 0
+        if os.path.exists(self.env_file):
+            self.env_file_modified_time = os.path.getmtime(self.env_file)
         return self.driver
 
     def __exit__(self, exc_type, exc_value, traceback):
         if exc_type is None and exc_value is None and traceback is None:
-            self.driver.save_env(self.driver.env, self.env_file)
-
+            # Skip saving if env_file has been modified since context was entered
+            current_env_file_modified_time = 0
+            if os.path.exists(self.env_file):
+                current_env_file_modified_time = os.path.getmtime(self.env_file)
+            if current_env_file_modified_time == self.env_file_modified_time:
+                self.driver.save_env(self.driver.env, self.env_file)
         self.driver.unload_env()
 
 

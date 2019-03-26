@@ -8,6 +8,8 @@ details, see the commit logs at http://github.com/scikit-build/scikit-ci
 Next Release
 ============
 
+* Support environment file `env.json` update from within step.
+
 Scikit-ci 0.19.0
 ================
 
