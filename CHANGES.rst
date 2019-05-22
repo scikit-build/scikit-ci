@@ -8,6 +8,8 @@ details, see the commit logs at http://github.com/scikit-build/scikit-ci
 Next Release
 ============
 
+* Fix installation of using Python 3.4
+
 Scikit-ci 0.20.0
 ================
 
