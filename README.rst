@@ -17,7 +17,7 @@ Latest Release
   +--------------------------------------------------------------------------+----------------------------------------------------------------------------+
   | Versions                                                                 | Downloads                                                                  |
   +==========================================================================+============================================================================+
-  | .. image:: https://img.shields.io/pypi/v/scikit-ci.svg?maxAge=2592000    | .. image:: https://img.shields.io/badge/downloads-66k%20total-green.svg    |
+  | .. image:: https://img.shields.io/pypi/v/scikit-ci.svg?maxAge=2592000    | .. image:: https://img.shields.io/badge/downloads-72k%20total-green.svg    |
   |     :target: https://pypi.python.org/pypi/scikit-ci                      |     :target: https://pypi.python.org/pypi/scikit-ci                        |
   +--------------------------------------------------------------------------+----------------------------------------------------------------------------+
 
