@@ -1,7 +1,7 @@
 codecov==2.0.15
-coverage==4.5.1
-flake8==3.5.0
-pytest==3.6.3
-pytest-cov==2.5.1
-pytest-runner==4.2
-wheel>=0.29.0
+coverage==4.5.3
+flake8==3.7.7
+pytest==4.5.0
+pytest-cov==2.7.1
+pytest-runner==5.1
+wheel==0.33.4
