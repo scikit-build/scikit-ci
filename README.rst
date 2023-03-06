@@ -2,6 +2,15 @@
 scikit-ci
 =========
 
++---------------------------------------------------------------------------------------------------------------------------------+
+| The ``scikit-ci`` project was archived in March 2023.                                                                           |
++=================================================================================================================================+
+| To build Python wheels across platforms and CI servers, consider using `cibuildwheel <https://cibuildwheel.readthedocs.io/>`_.  |
++---------------------------------------------------------------------------------------------------------------------------------+
+
+Overview
+--------
+
 scikit-ci enables a centralized and simpler CI configuration for Python
 extensions.
 
@@ -14,24 +23,17 @@ Latest Release
 
 .. table::
 
-  +--------------------------------------------------------------------------+----------------------------------------------------------------------------+
-  | Versions                                                                 | Downloads                                                                  |
-  +==========================================================================+============================================================================+
-  | .. image:: https://img.shields.io/pypi/v/scikit-ci.svg?maxAge=2592000    | .. image:: https://img.shields.io/badge/downloads-72k%20total-green.svg    |
-  |     :target: https://pypi.python.org/pypi/scikit-ci                      |     :target: https://pypi.python.org/pypi/scikit-ci                        |
-  +--------------------------------------------------------------------------+----------------------------------------------------------------------------+
+  +--------------------------------------------------------------------------+
+  | Versions                                                                 |
+  +==========================================================================+
+  | .. image:: https://img.shields.io/pypi/v/scikit-ci.svg?maxAge=2592000    |
+  |     :target: https://pypi.python.org/pypi/scikit-ci                      |
+  +--------------------------------------------------------------------------+
 
 Build Status
 ------------
 
-.. table::
-
-  +---------------+--------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------+
-  |               | Linux                                                                                | macOS                                                                                | Windows                                                                                    |
-  +===============+======================================================================================+======================================================================================+============================================================================================+
-  | PyPI          | .. image:: https://circleci.com/gh/scikit-build/scikit-ci.svg?style=shield           | .. image:: https://img.shields.io/travis/scikit-build/scikit-ci.svg?maxAge=2592000   | .. image:: https://ci.appveyor.com/api/projects/status/5to6lvgaqcrck675?svg=true           |
-  |               |     :target: https://circleci.com/gh/scikit-build/scikit-ci                          |     :target: https://travis-ci.org/scikit-build/scikit-ci                            |    :target: https://ci.appveyor.com/project/scikit-build/scikit-ci/branch/master           |
-  +---------------+--------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------+
+*Continuous integration pipelines have been disabled in March 2023. They were historically triggered on AppVeyor, Azure Pipelines, CircleCI and TravisCI services.*
 
 Overall Health
 --------------
@@ -40,8 +42,7 @@ Overall Health
     :target: http://scikit-ci.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 
-.. image:: https://codecov.io/gh/scikit-build/scikit-ci/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/scikit-build/scikit-ci
+*Code coverage was at 95% and was historically tracked using codecov.io service until March 2023.*
 
 Miscellaneous
 -------------
@@ -49,4 +50,3 @@ Miscellaneous
 * Free software: Apache Software license
 * Documentation: http://scikit-ci.readthedocs.org
 * Source code: https://github.com/scikit-build/scikit-ci
-* Mailing list: https://groups.google.com/forum/#!forum/scikit-build

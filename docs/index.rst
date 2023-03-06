@@ -6,6 +6,12 @@
 Welcome to scikit-ci's documentation!
 =====================================
 
+.. warning::
+
+  The ``scikit-ci`` project was archived in March 2023.
+
+  To build Python wheels across platforms and CI servers, consider using `cibuildwheel <https://cibuildwheel.readthedocs.io/>`_.
+
 scikit-ci enables a centralized and simpler CI configuration for Python
 extensions.
 
@@ -46,4 +52,3 @@ Resources
 * Free software: Apache Software license
 * Documentation: http://scikit-ci.readthedocs.org
 * Source code: https://github.com/scikit-build/scikit-ci
-* Mailing list: https://groups.google.com/forum/#!forum/scikit-build
