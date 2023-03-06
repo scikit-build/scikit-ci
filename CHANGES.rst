@@ -8,6 +8,10 @@ details, see the commit logs at http://github.com/scikit-build/scikit-ci
 Next Release
 ============
 
+* Archive project
+  * Add banners to documentation indicating the project has been archived since March 2023.
+  * Disable Continuous Integration pipelines.
+
 Scikit-ci 0.21.0
 ================
 

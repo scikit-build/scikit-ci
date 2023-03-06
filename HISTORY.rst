@@ -27,3 +27,12 @@ executable python scripts. Then, Jean-Christophe came up with the concept of
 scikit-ci.yml configuration file. This configuration file allows to describe the
 commands and environment for each step (install, test and build) specific to a
 project and associated continuous integration services.
+
+Following (1) the addition of CI/CD support (free for public repositories) in GitHub Actions
+in August 2019 [1]_ that is supporting Linux, macOS, and Windows and (2) the development
+of `cibuildwheel`, actively maintaining the `scikit-ci` project became less relevant.
+
+In 2023, the scikit-ci project was archived, continuous integration pipelines were all
+disabled.
+
+.. [1] https://web.archive.org/web/20221202155905/https://github.blog/2019-08-08-github-actions-now-supports-ci-cd/
