@@ -9,8 +9,11 @@ Next Release
 ============
 
 * Archive project
-  * Add banners to documentation indicating the project has been archived since March 2023.
+
+  * Add banners to documentation and wiki pages indicating the project has been archived since March 2023.
   * Disable Continuous Integration pipelines.
+  * Disable reporting of code coverage
+  * Disable Dependabot update related to Code security and analysis
 
 Scikit-ci 0.21.0
 ================
